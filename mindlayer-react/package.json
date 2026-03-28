@@ -1,0 +1,26 @@
+{
+  "name": "mindlayer",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AI-powered mental health support app with mood tracking, journaling, and habit personalization",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .js,.jsx"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "vite": "^5.0.10",
+    "eslint": "^8.55.0",
+    "eslint-plugin-react": "^7.33.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

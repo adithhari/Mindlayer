@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+dist/
+build/
+*.so
+venv/
+.venv/
+env/
+.env
+*.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.log
+htmlcov/
+.coverage
+.coverage.*
+.claude.md
+
+# Node.js / Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/build/
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Secrets (belt AND suspenders)
+backend/.env
+.env.local
+.env.production
