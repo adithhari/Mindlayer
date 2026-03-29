@@ -3,7 +3,7 @@ export default function Navigation({ activeScreen, onScreenChange }) {
     { screen: 'home',     label: 'Home',     icon: '⬡' },
     { screen: 'insights', label: 'Insights', icon: '◈' },
     { screen: 'journal',  label: 'Journal',  icon: '▭' },
-    { screen: 'findhelp', label: 'Find help',  icon: '🤝' }
+    { screen: 'findhelp', label: 'Find help',  icon: '♥' }
   ];
 
   return (
