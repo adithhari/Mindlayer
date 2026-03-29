@@ -90,5 +90,6 @@ export const useAudioRecorder = () => {
     formattedTime: formatTime(recordingTime),
     startRecording,
     stopRecording,
+    streamRef, // exposed so callers can tap the raw MediaStream (e.g. audio analyzer)
   };
 };
