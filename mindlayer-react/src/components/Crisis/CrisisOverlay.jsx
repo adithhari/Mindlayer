@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useApp } from '../../context/AppContext';
 
 // 4-7-8 breathing: 4s inhale, 7s hold, 8s exhale
 const PHASES = [
@@ -8,6 +9,7 @@ const PHASES = [
 ];
 
 export default function CrisisOverlay({ onClose }) {
+  const { setActiveScreen } = useApp();
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [countdown, setCountdown] = useState(PHASES[0].duration);
   const [cycles, setCycles] = useState(0);
@@ -35,6 +37,11 @@ export default function CrisisOverlay({ onClose }) {
 
   const phase = PHASES[phaseIdx];
   const progress = (phase.duration - countdown) / phase.duration;
+
+  const handleFindTherapist = () => {
+    onClose();
+    setActiveScreen('findhelp');
+  };
 
   return (
     <div className="crisis-overlay">
@@ -73,9 +80,9 @@ export default function CrisisOverlay({ onClose }) {
 
         {/* Crisis resources */}
         <div className="crisis-resources">
-          <h4 className="crisis-resources__title">Crisis Resources</h4>
+          <h4 className="crisis-resources__title">You deserve support from a real person</h4>
           <p className="crisis-resources__desc">
-            If you're having thoughts of self-harm, please reach out:
+            Reach out right now — these services are free, confidential, and available 24/7:
           </p>
           <div className="crisis-links">
             <a href="tel:988" className="crisis-link">
@@ -93,6 +100,11 @@ export default function CrisisOverlay({ onClose }) {
               </div>
             </a>
           </div>
+
+          {/* Find a therapist — links to FindHelp screen */}
+          <button className="crisis-find-therapist" onClick={handleFindTherapist}>
+            Find a licensed therapist near you →
+          </button>
         </div>
       </div>
     </div>

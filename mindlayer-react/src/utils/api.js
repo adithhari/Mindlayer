@@ -1,21 +1,18 @@
-// Load API keys from environment variables
-const CLAUDE_API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY || "";
-const API_URL = "https://api.anthropic.com/v1/messages";
-const MODEL = "claude-opus-4-6";
+// ─────────────────────────────────────────────────────────────────────────────
+// MindLayer Frontend API Client
+// ─────────────────────────────────────────────────────────────────────────────
+// ALL secret API calls now go through the FastAPI proxy at /api/*.
+// No API keys in the browser. Zero VITE_ secrets.
+// ─────────────────────────────────────────────────────────────────────────────
 
-const HUME_API_KEY = import.meta.env.VITE_HUME_API_KEY || "";
-const HUME_BATCH_URL = "https://api.hume.ai/v0/batch/jobs";
-
-const DEEPGRAM_API_KEY = import.meta.env.VITE_DEEPGRAM_API_KEY || "";
-const DEEPGRAM_URL = "https://api.deepgram.com/v1/listen";
+// Proxy base — Vite dev server proxies /api/* to http://localhost:8000
+const PROXY = '/api';
 
 // Extract the first {...} JSON block from a Claude response, even with preamble text.
-// If Claude returns plain text (e.g. safety/crisis override), wrap it gracefully.
 const extractJSON = (raw) => {
   const match = raw.match(/\{[\s\S]*\}/);
   if (match) return JSON.parse(match[0]);
 
-  // Plain-text fallback — Claude returned a compassionate prose response
   return {
     acknowledgment: raw.trim(),
     insight: '',
@@ -84,24 +81,60 @@ Your job is to be a steady, non-judgmental presence:
   }
 }
 
-// Single unified analysis call — replaces brainDumpSummarize + getEmotionAwareResponse
-export const analyzeEntry = async (text, userName = '', moodLabel = 'Neutral', recentThemes = []) => {
+// ─────────────────────────────────────────────────────────────────────────────
+// CLAUDE — via /api/claude proxy (no key in browser)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const askClaude = async (systemPrompt, userMessage) => {
+  const res = await fetch(`${PROXY}/claude`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      system: systemPrompt,
+      message: userMessage,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`API error ${res.status}: ${errText}`);
+  }
+
+  const data = await res.json();
+  return data.content[0].text;
+};
+
+// Unified analysis call with Supermemory personalization
+export const analyzeEntry = async (text, userName = '', moodLabel = 'Neutral', recentThemes = [], userMemoryCard = '') => {
   const moodStrategy = getMoodStrategy(moodLabel);
 
-  const context = [
+  const contextParts = [
     userName ? `The user's name is ${userName}.` : '',
     recentThemes.length > 0
       ? `Recent themes from their journal: ${recentThemes.slice(0, 3).join(', ')}.`
       : '',
-  ].filter(Boolean).join(' ');
+  ].filter(Boolean);
+
+  const memoryBlock = userMemoryCard
+    ? `\nUSER MEMORY (from past sessions — use this to personalize your response, reference past patterns, and show continuity):\n${userMemoryCard}\n`
+    : '';
+
+  const context = contextParts.join(' ');
 
   const systemPrompt = `You are a warm, perceptive mental wellness companion. You speak like a trusted friend who also has training in psychology — never clinical, never generic.
 
-${context ? context + '\n\n' : ''}MOOD CONTEXT & RESPONSE STRATEGY:
+${context ? context + '\n' : ''}${memoryBlock}
+MOOD CONTEXT & RESPONSE STRATEGY:
 ${moodStrategy}
 
 The user has shared something with you. Follow the strategy above carefully — the mood slider is their honest self-report and it should shape every part of your response.
 
+${userMemoryCard ? `PERSONALIZATION RULES:
+- If you recognize a recurring pattern from USER MEMORY, gently name it: "I notice this keeps coming up for you..."
+- If the user's mood has shifted from past sessions, acknowledge the trajectory: "Last time you were feeling X, and now..."
+- Reference specific past context when it deepens the insight — but don't force it
+- If this is a new theme, treat it fresh — don't shoehorn old context in
+` : ''}
 Always:
 - Use the user's name if provided
 - Reference specific details from what they shared — never be generic
@@ -121,115 +154,45 @@ Return ONLY this JSON, no preamble:
   return extractJSON(raw);
 };
 
-export const askClaude = async (systemPrompt, userMessage) => {
-  if (!CLAUDE_API_KEY) {
-    throw new Error("VITE_ANTHROPIC_API_KEY environment variable is not set");
-  }
 
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": CLAUDE_API_KEY,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1000,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userMessage }],
-    }),
-  });
-
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  const data = await res.json();
-  return data.content[0].text;
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// HUME — via /api/hume/* proxy (no key in browser)
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const humeAnalyzeText = async (text) => {
-  if (!HUME_API_KEY) {
-    throw new Error("VITE_HUME_API_KEY environment variable is not set");
-  }
+  console.log("🔍 Starting Hume analysis for text:", text.substring(0, 50) + "...");
 
-  console.log(
-    "🔍 Starting Hume analysis for text:",
-    text.substring(0, 50) + "...",
-  );
-
-  const body = {
-    text: [text], // Hume expects text as an array
-    models: {
-      language: {},
-    },
-  };
-
-  console.log("📤 Submitting to Hume API...");
-  const submitRes = await fetch(HUME_BATCH_URL, {
+  // Submit job
+  const submitRes = await fetch(`${PROXY}/hume/submit`, {
     method: "POST",
-    headers: {
-      "X-Hume-Api-Key": HUME_API_KEY,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
   });
 
-  if (!submitRes.ok) {
-    const errorText = await submitRes.text();
-    console.error("❌ Hume submit failed:", submitRes.status, errorText);
-    throw new Error(`Hume submit ${submitRes.status}: ${errorText}`);
-  }
+  if (!submitRes.ok) throw new Error(`Hume submit ${submitRes.status}: ${await submitRes.text()}`);
 
-  const submitData = await submitRes.json();
-  const { job_id } = submitData;
-  console.log("✅ Job submitted:", job_id);
+  const { job_id } = await submitRes.json();
+  console.log("✅ Hume job submitted:", job_id);
 
-  // Poll for up to 30 s
+  // Poll for up to 30s
   for (let i = 0; i < 30; i++) {
     await new Promise((r) => setTimeout(r, 1000));
-    const statusRes = await fetch(`${HUME_BATCH_URL}/${job_id}`, {
-      headers: { "X-Hume-Api-Key": HUME_API_KEY },
-    });
 
-    if (!statusRes.ok) {
-      const errorText = await statusRes.text();
-      console.error(
-        "❌ Hume status check failed:",
-        statusRes.status,
-        errorText,
-      );
-      throw new Error("Hume status check failed");
-    }
+    const statusRes = await fetch(`${PROXY}/hume/status/${job_id}`);
+    if (!statusRes.ok) throw new Error("Hume status check failed");
 
     const statusData = await statusRes.json();
-    const { state } = statusData;
-    console.log(
-      `⏳ Job ${job_id} status: ${state.status} (attempt ${i + 1}/30)`,
-    );
+    console.log(`⏳ Job ${job_id} status: ${statusData.state?.status} (attempt ${i + 1}/30)`);
 
-    if (state.status === "COMPLETED") {
-      console.log("🎉 Hume job completed, fetching predictions...");
-      const predRes = await fetch(`${HUME_BATCH_URL}/${job_id}/predictions`, {
-        headers: { "X-Hume-Api-Key": HUME_API_KEY },
-      });
-
-      if (!predRes.ok) {
-        const errorText = await predRes.text();
-        console.error(
-          "❌ Hume predictions fetch failed:",
-          predRes.status,
-          errorText,
-        );
-        throw new Error(`Hume predictions ${predRes.status}`);
-      }
-
+    if (statusData.state?.status === "COMPLETED") {
+      const predRes = await fetch(`${PROXY}/hume/predictions/${job_id}`);
+      if (!predRes.ok) throw new Error(`Hume predictions ${predRes.status}`);
       const predictions = await predRes.json();
-      console.log("📊 Hume predictions received:", predictions);
+      console.log("📊 Hume predictions received");
       return predictions;
     }
 
-    if (state.status === "FAILED") {
-      console.error("❌ Hume job FAILED:", state);
+    if (statusData.state?.status === "FAILED") {
       throw new Error("Hume job failed");
     }
   }
@@ -237,46 +200,73 @@ export const humeAnalyzeText = async (text) => {
   throw new Error("Hume timed out after 30 seconds");
 };
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DEEPGRAM — via /api/deepgram/* proxy (no key in browser)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const deepgramSpeechToText = async (audioBlob) => {
+  const contentType = audioBlob.type || "audio/webm";
+  console.log("🎙️ Sending audio to Deepgram proxy...", audioBlob.size, "bytes");
+
+  const response = await fetch(`${PROXY}/deepgram/stt`, {
+    method: "POST",
+    headers: { "Content-Type": contentType },
+    body: audioBlob,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Deepgram error: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  const transcript = result.results?.channels?.[0]?.alternatives?.[0]?.transcript || "";
+  const confidence = result.results?.channels?.[0]?.alternatives?.[0]?.confidence || 0;
+
+  if (!transcript || !transcript.trim()) {
+    throw new Error("No speech detected. Please speak clearly and try again.");
+  }
+
+  console.log(`📝 Transcribed: "${transcript}" (confidence: ${confidence})`);
+  return { text: transcript, confidence, raw: result };
+};
+
+export const deepgramTextToSpeech = async (text) => {
+  if (!text?.trim()) throw new Error("No text provided for speech synthesis");
+
+  console.log("🔊 Converting text to speech via proxy...");
+
+  const response = await fetch(`${PROXY}/deepgram/tts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Deepgram TTS error: ${response.status} - ${errorText}`);
+  }
+
+  const audioBlob = await response.blob();
+  const audioUrl = URL.createObjectURL(audioBlob);
+  return { audioUrl, audioBlob };
+};
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UTILITY FUNCTIONS (unchanged — no keys involved)
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const emotionColor = (name) => {
   const n = name.toLowerCase();
-  const pos = [
-    "joy",
-    "excite",
-    "admira",
-    "amuse",
-    "enthus",
-    "satisf",
-    "content",
-    "pride",
-    "triumph",
-    "relief",
-    "love",
-    "adora",
-    "calm",
-    "interest",
-  ];
-  const neg = [
-    "anger",
-    "fear",
-    "sad",
-    "disgust",
-    "distress",
-    "anxi",
-    "shame",
-    "guilt",
-    "contempt",
-    "horror",
-    "envy",
-    "pain",
-    "bored",
-  ];
-
+  const pos = ["joy","excite","admira","amuse","enthus","satisf","content","pride","triumph","relief","love","adora","calm","interest"];
+  const neg = ["anger","fear","sad","disgust","distress","anxi","shame","guilt","contempt","horror","envy","pain","bored"];
   if (pos.some((p) => n.includes(p))) return "var(--green)";
   if (neg.some((p) => n.includes(p))) return "var(--red)";
   return "var(--accent)";
 };
 
-// Brain Dump Analysis: Summarize and understand the rant
 export const brainDumpSummarize = async (text) => {
   const systemPrompt = `You are a compassionate mental health assistant. A user has shared their thoughts, feelings, and experiences with you. 
 
@@ -296,23 +286,15 @@ Return ONLY valid JSON:
   return extractJSON(raw);
 };
 
-// Extract top emotions from Hume predictions (raw emotions)
 export const getTopEmotions = (humePredictions, topN = 5) => {
-  if (!humePredictions || humePredictions.length === 0) {
-    console.warn("⚠️ No Hume predictions provided");
-    return [];
-  }
-
-  console.log("🔬 Processing Hume predictions...");
+  if (!humePredictions || humePredictions.length === 0) return [];
   const emotionScores = {};
-
   try {
     humePredictions.forEach((src) => {
       src.results?.predictions?.forEach((pred) => {
         pred.models?.language?.grouped_predictions?.forEach((group) => {
           group.predictions?.forEach((p) => {
             p.emotions?.forEach((e) => {
-              console.log(`  Emotion: ${e.name} = ${e.score}`);
               emotionScores[e.name] = (emotionScores[e.name] || 0) + e.score;
             });
           });
@@ -323,23 +305,14 @@ export const getTopEmotions = (humePredictions, topN = 5) => {
     console.error("❌ Error parsing Hume predictions:", err);
     return [];
   }
-
-  console.log("📈 All emotion scores:", emotionScores);
-
-  // Return top N emotions sorted by score
-  const topEmotions = Object.entries(emotionScores)
+  return Object.entries(emotionScores)
     .map(([name, score]) => ({ name, score }))
     .sort((a, b) => b.score - a.score)
     .slice(0, topN);
-
-  console.log("🎯 Top emotions:", topEmotions);
-  return topEmotions;
 };
 
-// Get emotion-aware coaching response based on raw emotions
 export const getEmotionAwareResponse = async (text, topEmotions) => {
   const emotionsStr = topEmotions.map((e) => e.name).join(", ");
-
   const systemPrompt = `You are a compassionate mental health coach. The user's detected emotions are: ${emotionsStr}.
 
 Analyze their emotional state and provide:
@@ -358,13 +331,8 @@ Return ONLY valid JSON:
   return extractJSON(raw);
 };
 
-// Generate a journal entry heading from the summary
 export const generateJournalHeading = async (summary, dominantEmotion) => {
-  if (!summary) {
-    console.warn("⚠️ No summary provided for heading generation");
-    return null;
-  }
-
+  if (!summary) return null;
   const systemPrompt = `You are a creative writer. Given a journal summary and detected emotion, create a short, evocative journal entry heading (3-6 words max) that captures the essence of the entry.
 
 The heading should be:
@@ -382,159 +350,10 @@ Examples:
 Return ONLY the heading text, nothing else.`;
 
   try {
-    const heading = await askClaude(
-      systemPrompt,
-      `Emotion: ${dominantEmotion}\nSummary: ${summary}`,
-    );
-    console.log("📝 Generated heading:", heading);
+    const heading = await askClaude(systemPrompt, `Emotion: ${dominantEmotion}\nSummary: ${summary}`);
     return heading.trim();
   } catch (err) {
     console.error("❌ Failed to generate heading:", err);
     return null;
-  }
-};
-
-// Deepgram Speech-to-Text API
-export const deepgramSpeechToText = async (audioBlob) => {
-  if (!DEEPGRAM_API_KEY) {
-    throw new Error("VITE_DEEPGRAM_API_KEY environment variable is not set");
-  }
-
-  console.log(
-    "🎙️ Sending audio to Deepgram...",
-    audioBlob.size,
-    "bytes, mimeType:",
-    audioBlob.type,
-  );
-
-  // Determine the MIME type for the Content-Type header
-  let contentType = audioBlob.type || "audio/webm";
-  console.log("📋 Content-Type header:", contentType);
-
-  // Build URL with parameters
-  const url = new URL(DEEPGRAM_URL);
-
-  // Let Deepgram auto-detect encoding for compressed formats (WebM, Ogg, etc.)
-  // Only specify encoding for raw audio formats
-  if (contentType.includes("wav") || contentType.includes("raw")) {
-    url.searchParams.append("encoding", "linear16");
-    url.searchParams.append("sample_rate", "16000");
-  }
-
-  // Always add smart formatting for better transcription
-  url.searchParams.append("model", "nova-2");
-  url.searchParams.append("language", "en");
-
-  try {
-    console.log("📤 Fetching from URL:", url.toString());
-
-    const response = await fetch(url.toString(), {
-      method: "POST",
-      headers: {
-        Authorization: `Token ${DEEPGRAM_API_KEY}`,
-        "Content-Type": contentType,
-      },
-      body: audioBlob,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(
-        "❌ Deepgram API error:",
-        response.status,
-        "Response:",
-        errorText,
-      );
-      throw new Error(
-        `Deepgram error: ${response.status} - ${errorText || "Unknown error"}`,
-      );
-    }
-
-    const result = await response.json();
-    console.log("✅ Deepgram response:", result);
-
-    // Extract transcript from Deepgram response
-    const transcript =
-      result.results?.channels?.[0]?.alternatives?.[0]?.transcript || "";
-    const confidence =
-      result.results?.channels?.[0]?.alternatives?.[0]?.confidence || 0;
-
-    if (!transcript || !transcript.trim()) {
-      console.warn("⚠️ Empty transcript received from Deepgram");
-      throw new Error(
-        "No speech detected. Please speak clearly and try again.",
-      );
-    }
-
-    console.log(`📝 Transcribed: "${transcript}" (confidence: ${confidence})`);
-    return {
-      text: transcript,
-      confidence,
-      raw: result,
-    };
-  } catch (err) {
-    console.error("❌ Deepgram transcription error:", err.message);
-    throw err;
-  }
-};
-
-// Deepgram Text-to-Speech API
-export const deepgramTextToSpeech = async (text) => {
-  if (!DEEPGRAM_API_KEY) {
-    throw new Error("VITE_DEEPGRAM_API_KEY environment variable is not set");
-  }
-
-  if (!text || !text.trim()) {
-    throw new Error("No text provided for speech synthesis");
-  }
-
-  console.log(
-    "🔊 Converting text to speech with Deepgram...",
-    text.substring(0, 50) + "...",
-  );
-
-  const TTS_URL = "https://api.deepgram.com/v1/speak";
-
-  try {
-    const response = await fetch(TTS_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Token ${DEEPGRAM_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        text: text,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(
-        "❌ Deepgram TTS error:",
-        response.status,
-        "Response:",
-        errorText,
-      );
-      throw new Error(
-        `Deepgram TTS error: ${response.status} - ${errorText || "Unknown error"}`,
-      );
-    }
-
-    // Response is audio/mpeg blob
-    const audioBlob = await response.blob();
-    console.log("✅ Audio generated:", {
-      size: audioBlob.size,
-      type: audioBlob.type,
-    });
-
-    // Create a URL for the audio blob
-    const audioUrl = URL.createObjectURL(audioBlob);
-    return {
-      audioUrl,
-      audioBlob,
-    };
-  } catch (err) {
-    console.error("❌ Text-to-speech error:", err.message);
-    throw err;
   }
 };
