@@ -9,18 +9,87 @@ const HUME_BATCH_URL = "https://api.hume.ai/v0/batch/jobs";
 const DEEPGRAM_API_KEY = import.meta.env.VITE_DEEPGRAM_API_KEY || "";
 const DEEPGRAM_URL = "https://api.deepgram.com/v1/listen";
 
-// Extract the first {...} JSON block from a Claude response, even with preamble text
+// Extract the first {...} JSON block from a Claude response, even with preamble text.
+// If Claude returns plain text (e.g. safety/crisis override), wrap it gracefully.
 const extractJSON = (raw) => {
   const match = raw.match(/\{[\s\S]*\}/);
-  if (!match) throw new Error(`No JSON found in Claude response: ${raw.slice(0, 120)}`);
-  return JSON.parse(match[0]);
+  if (match) return JSON.parse(match[0]);
+
+  // Plain-text fallback — Claude returned a compassionate prose response
+  return {
+    acknowledgment: raw.trim(),
+    insight: '',
+    microAction: 'Take a slow breath. Reach out to someone you trust.',
+    affirmation: 'You are not alone in this.',
+    stressLevel: 75,
+    theme: 'crisis',
+  };
 };
+
+// Mood-specific response strategy based on slider label
+function getMoodStrategy(moodLabel) {
+  switch (moodLabel) {
+    case 'Very Positive':
+      return `The user self-reports as VERY POSITIVE (+2) — they're in an excellent emotional place.
+Your job is to celebrate, amplify, and lock in this state:
+- ACKNOWLEDGE: Celebrate what they shared with genuine enthusiasm. Reflect their energy back. Use their name. Be specific about what's going well — not generic praise.
+- INSIGHT: Name the strength or pattern driving this positivity. E.g. "It sounds like your consistency is finally compounding" or "You've built real momentum here."
+- MICRO_ACTION: Something to lock in or extend this state — write down this win, share it with someone, or do one more thing that builds on it while the energy is high.
+- AFFIRMATION: Empowering and celebratory. Reinforce that they earned this feeling.
+- STRESS_LEVEL: LOW (0–20).
+- THEME: "positive"`;
+
+    case 'Positive':
+      return `The user self-reports as POSITIVE (+1) — they're in a stable, good mood.
+Your job is to affirm, ground, and build on this baseline:
+- ACKNOWLEDGE: Warmly validate what's going right. Use their name. Don't over-hype but genuinely acknowledge the good.
+- INSIGHT: Name what's working — a habit, mindset, relationship, or decision. Be specific.
+- MICRO_ACTION: Something small to sustain this — a 5-minute walk, a note of appreciation, one focused task while the energy is there.
+- AFFIRMATION: Grounding and encouraging. "This is who you are when you're at your best."
+- STRESS_LEVEL: LOW-MODERATE (15–35).
+- THEME: "positive" or "neutral"`;
+
+    case 'Neutral':
+      return `The user self-reports as NEUTRAL (0) — neither high nor low, just present.
+Your job is to meet them exactly where they are and help them get gentle clarity:
+- ACKNOWLEDGE: Validate that neutral is completely okay. Don't force positivity. Reflect what they shared accurately and warmly.
+- INSIGHT: Name what's sitting underneath — a transition, low-energy day, uncertainty? Be specific.
+- MICRO_ACTION: Something tiny that shifts energy slightly — step outside 5 minutes, drink water, write one thing they're looking forward to.
+- AFFIRMATION: Steady and real. "You don't have to be on fire every day to be doing well."
+- STRESS_LEVEL: MODERATE (30–55).
+- THEME: "neutral"`;
+
+    case 'Negative':
+      return `The user self-reports as NEGATIVE (-1) — they're struggling and need real support.
+Your job is to be a calm, compassionate presence:
+- ACKNOWLEDGE: Lead with deep warmth. Name exactly what they're going through using their own words. Don't minimize or rush to fix. Use their name. 2–3 sentences of genuine recognition.
+- INSIGHT: Gently name the emotional root — "It sounds like the hardest part isn't the situation itself but feeling like you have to navigate it alone."
+- MICRO_ACTION: Something that immediately reduces distress — put the phone down for 10 minutes, splash cold water on your face, text one person you trust.
+- AFFIRMATION: Compassionate and specific. Remind them of their resilience without being preachy.
+- STRESS_LEVEL: MODERATE-HIGH (50–72).
+- THEME: anxiety, sadness, overwhelm, or anger based on text`;
+
+    case 'Very Negative':
+      return `The user self-reports as VERY NEGATIVE (-2) — they're in real pain and need immediate compassionate grounding.
+Your job is to be a steady, non-judgmental presence:
+- ACKNOWLEDGE: Lead with deep, genuine empathy. Don't rush past their pain. Use their name. Reflect exactly what they're feeling — they need to feel truly heard before anything else. 2–3 full, warm sentences.
+- INSIGHT: Gently name the core of this distress. Be specific and compassionate — not clinical. E.g. "What I'm hearing is that you've been carrying this completely alone and that weight has become unbearable."
+- MICRO_ACTION: Something grounding and immediate — take 3 slow breaths right now, sit somewhere quiet for 5 minutes, or reach out to one person you trust.
+- AFFIRMATION: Deeply compassionate. Remind them this moment is not permanent and they are not alone.
+- STRESS_LEVEL: HIGH (72–95).
+- THEME: anxiety, sadness, grief, overwhelm, or loneliness based on text`;
+
+    default:
+      return `The user's mood is neutral. Respond with warmth, balance, and genuine presence.`;
+  }
+}
 
 // Single unified analysis call — replaces brainDumpSummarize + getEmotionAwareResponse
 export const analyzeEntry = async (text, userName = '', moodLabel = 'Neutral', recentThemes = []) => {
+  const moodStrategy = getMoodStrategy(moodLabel);
+
   const context = [
     userName ? `The user's name is ${userName}.` : '',
-    `Their self-reported mood right now is: ${moodLabel}.`,
     recentThemes.length > 0
       ? `Recent themes from their journal: ${recentThemes.slice(0, 3).join(', ')}.`
       : '',
@@ -28,15 +97,15 @@ export const analyzeEntry = async (text, userName = '', moodLabel = 'Neutral', r
 
   const systemPrompt = `You are a warm, perceptive mental wellness companion. You speak like a trusted friend who also has training in psychology — never clinical, never generic.
 
-${context}
+${context ? context + '\n\n' : ''}MOOD CONTEXT & RESPONSE STRATEGY:
+${moodStrategy}
 
-The user has shared something with you. Your job:
-1. ACKNOWLEDGE what they shared with genuine warmth (2–3 sentences, use their name if provided, reference specific details they mentioned — never say "I hear you" or "I understand")
-2. INSIGHT: Name the core emotional pattern in 1 sentence. Be specific — not "you seem stressed" but "it sounds like the pressure is coming from feeling like you have no control over the timeline"
-3. MICRO_ACTION: One tiny, specific action they can do in the next 10 minutes. Concrete ("open Notes app and list 3 things") not vague ("try journaling")
-4. AFFIRMATION: 1 sentence. Empowering, specific to their situation, not a cliché
-5. STRESS_LEVEL: Integer 0–100 representing how much distress this entry conveys (0 = serene, 100 = in crisis)
-6. THEME: One of: anxiety | sadness | anger | overwhelm | neutral | positive | grief | loneliness
+The user has shared something with you. Follow the strategy above carefully — the mood slider is their honest self-report and it should shape every part of your response.
+
+Always:
+- Use the user's name if provided
+- Reference specific details from what they shared — never be generic
+- Never say "I hear you", "I understand", or "That sounds hard"
 
 Return ONLY this JSON, no preamble:
 {

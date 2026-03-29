@@ -3,15 +3,29 @@ import { useApp } from '../../context/AppContext';
 import { analyzeEntry, deepgramSpeechToText, deepgramTextToSpeech } from '../../utils/api';
 import { checkCrisis } from '../../utils/constants';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
+import { useAudioAnalyzer } from '../../hooks/useAudioAnalyzer';
 import OrbAssistant from '../Orb/OrbAssistant';
+import MoodSlider from './MoodSlider';
 import CrisisOverlay from '../Crisis/CrisisOverlay';
 
+function getMoodScore(value) {
+  if (value <= 15) return -2;
+  if (value <= 35) return -1;
+  if (value <= 60) return 0;
+  if (value <= 80) return 1;
+  return 2;
+}
+
+const MOOD_SCALE = [
+  { score: -2, label: 'Very Negative' },
+  { score: -1, label: 'Negative' },
+  { score:  0, label: 'Neutral' },
+  { score:  1, label: 'Positive' },
+  { score:  2, label: 'Very Positive' },
+];
+
 function getMoodLabel(value) {
-  if (value <= 15) return 'Very Unpleasant';
-  if (value <= 35) return 'Unpleasant';
-  if (value <= 60) return 'Neutral';
-  if (value <= 80) return 'Pleasant';
-  return 'Very Pleasant';
+  return MOOD_SCALE.find(m => m.score === getMoodScore(value))?.label ?? 'Neutral';
 }
 
 function themeToHue(theme = '') {
@@ -22,7 +36,6 @@ function themeToHue(theme = '') {
   if (t.includes('calm') || t.includes('peace') || t.includes('relax') || t.includes('content')) return 185;
   if (t.includes('joy') || t.includes('happi') || t.includes('excit') || t.includes('positiv')) return 148;
   if (t.includes('lonel') || t.includes('isol')) return 260;
-  if (t.includes('grief')) return 240;
   return 210;
 }
 
@@ -37,9 +50,8 @@ export default function Home() {
   const [inputText, setInputText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [aiData, setAiData] = useState(null);       // full analyzeEntry result
+  const [aiData, setAiData] = useState(null);
   const [displayedText, setDisplayedText] = useState('');
-  const [showDetail, setShowDetail] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const typewriterRef = useRef(null);
 
@@ -51,7 +63,8 @@ export default function Home() {
     setGreeting(h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening');
   }, []);
 
-  const { isRecording, formattedTime, startRecording, stopRecording } = useAudioRecorder();
+  const { isRecording, formattedTime, startRecording, stopRecording, streamRef } = useAudioRecorder();
+  const { amplitudeRef, analyserRef, ensureCtx, connectMicStream, startLoop, stopLoop, disconnect } = useAudioAnalyzer();
 
   const audioRef = useRef(null);
 
@@ -72,23 +85,37 @@ export default function Home() {
   useEffect(() => () => { if (typewriterRef.current) clearInterval(typewriterRef.current); }, []);
 
   const playTTS = async (text) => {
+    if (audioRef.current) {
+      try { audioRef.current.stop(); } catch (_) {}
+      audioRef.current = null;
+    }
+    disconnect();
+
     try {
-      // Stop any currently playing audio
-      if (audioRef.current) {
-        audioRef.current.pause();
-        URL.revokeObjectURL(audioRef.current.src);
+      const { audioBlob } = await deepgramTextToSpeech(text);
+      const arrayBuffer = await audioBlob.arrayBuffer();
+
+      const { ctx } = ensureCtx();
+      const decoded = await ctx.decodeAudioData(arrayBuffer);
+      const source  = ctx.createBufferSource();
+      source.buffer = decoded;
+      source.connect(analyserRef.current);
+      source.connect(ctx.destination);
+      startLoop();
+      source.start(0);
+
+      source.onended = () => {
         audioRef.current = null;
-      }
-      const { audioUrl } = await deepgramTextToSpeech(text);
-      const audio = new Audio(audioUrl);
-      audioRef.current = audio;
-      audio.onended = () => {
-        URL.revokeObjectURL(audioUrl);
-        audioRef.current = null;
+        stopLoop();
       };
-      audio.play().catch(() => {});
-    } catch {
-      // TTS failure is non-critical — silently ignore
+      audioRef.current = {
+        stop: () => {
+          try { source.stop(); } catch (_) {}
+          stopLoop();
+        }
+      };
+    } catch (err) {
+      console.error('TTS error:', err);
     }
   };
 
@@ -104,10 +131,8 @@ export default function Home() {
     setOrbState('processing');
     setAiData(null);
     setDisplayedText('');
-    setShowDetail(false);
     setErrorMsg('');
 
-    // Build recent themes from conversation history
     const recentThemes = conversationHistory
       .filter(m => m.theme)
       .slice(-3)
@@ -121,7 +146,6 @@ export default function Home() {
         recentThemes
       );
 
-      // Append to conversation history
       setConversationHistory(prev => [
         ...prev,
         { role: 'user', text, theme: result.theme }
@@ -133,13 +157,15 @@ export default function Home() {
       setAiData(result);
       typewrite(result.acknowledgment);
 
-      // Play TTS for acknowledgment
-      playTTS(result.acknowledgment);
+      const fullSpeech = [
+        result.acknowledgment,
+        result.insight,
+        `Here's something you can try right now: ${result.microAction}`,
+        result.affirmation,
+      ].join(' ');
+      playTTS(fullSpeech);
 
-      // Log mood
       logMood(moodLabel.toLowerCase(), sliderValue / 10);
-
-      // Save journal (async, non-blocking)
       addJournalEntry(text, {
         emotions: [{ name: result.theme || 'neutral', score: sliderValue / 100 }],
         dominantEmotion: result.theme || 'neutral',
@@ -160,18 +186,21 @@ export default function Home() {
   const handleVoiceToggle = async () => {
     if (isRecording) {
       try {
+        disconnect();
         setOrbState('processing');
         const audioBlob = await stopRecording();
         const result = await deepgramSpeechToText(audioBlob);
-        setInputText(result.text);
-        setOrbState('idle');
+        // Auto-submit immediately — no manual button press needed
+        await handleSubmit(result.text);
       } catch (err) {
         console.error('Voice error:', err);
+        disconnect();
         setOrbState('idle');
       }
     } else {
       try {
         await startRecording();
+        if (streamRef.current) connectMicStream(streamRef.current);
         setOrbState('listening');
       } catch (err) {
         console.error('Mic error:', err);
@@ -188,102 +217,125 @@ export default function Home() {
   };
 
   const handleReset = () => {
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    if (audioRef.current) { try { audioRef.current.stop(); } catch (_) {} audioRef.current = null; }
     if (typewriterRef.current) clearInterval(typewriterRef.current);
     setOrbState('idle');
     setAiData(null);
     setDisplayedText('');
-    setShowDetail(false);
     setSpeakingHue(null);
   };
 
   const isTypingDone = aiData && displayedText === aiData.acknowledgment;
+  const name = userProfile?.name ? `, ${userProfile.name}` : '';
 
   return (
     <div className="home-screen">
-      {/* Header */}
-      <div className="home-header">
-        <span className="home-greeting">
-          {greeting}{userProfile?.name ? `, ${userProfile.name}` : ''}
-        </span>
-        <span className="home-tagline">How are you feeling?</span>
-      </div>
 
-      {/* Orb */}
-      <div className="orb-section">
-        <div
-          className="orb-wrapper"
-          onClick={handleOrbClick}
-          title={orbState === 'idle' ? 'Tap to speak' : undefined}
-        >
-          <OrbAssistant state={orbState} sliderValue={sliderValue} speakingHue={speakingHue} />
-        </div>
+      {/* ── Hero split ────────────────────────────────── */}
+      <div className="home-hero">
 
-        <div className="orb-state-label">
-          {orbState === 'idle' && <span>Tap orb to speak</span>}
-          {orbState === 'listening' && (
-            <span className="orb-label--listening">
-              <span className="listening-dot" /> Listening… {formattedTime}
-            </span>
-          )}
-          {orbState === 'processing' && <span className="orb-label--processing">Thinking…</span>}
-          {orbState === 'speaking' && aiData && (
-            <button className="orb-reset-btn" onClick={handleReset}>Clear ✕</button>
-          )}
-        </div>
+        {/* Left column */}
+        <div className="home-left">
+          <div className="home-eyebrow">
+            {greeting}{name}
+          </div>
 
-        {/* AI Response Card */}
-        {displayedText && (
-          <div className="orb-response">
-            <p className="orb-response__ack">{displayedText}</p>
+          <h1 className="home-headline">
+            How are you<br />
+            <em>feeling</em> today?
+          </h1>
 
-            {isTypingDone && (
-              <>
-                {!showDetail && (
-                  <button className="orb-detail-toggle" onClick={() => setShowDetail(true)}>
-                    Show insight &amp; action ↓
-                  </button>
-                )}
-                {showDetail && (
-                  <div className="orb-detail">
-                    <div className="orb-detail__block">
-                      <span className="orb-detail__label">Insight</span>
-                      <p>{aiData.insight}</p>
-                    </div>
-                    <div className="orb-detail__block orb-detail__block--action">
-                      <span className="orb-detail__label">Try this now</span>
-                      <p>{aiData.microAction}</p>
-                    </div>
-                    <p className="orb-detail__affirmation">"{aiData.affirmation}"</p>
+          {/* Feature bullets — vapi-style two-column */}
+          <div className="home-features">
+            <div className="home-feature">
+              <strong>Evidence-based</strong>
+              <p>CBT and mindfulness grounded in clinical research.</p>
+            </div>
+            <div className="home-feature">
+              <strong>Emotion-aware</strong>
+              <p>Understands your voice, tone, and mood over time.</p>
+            </div>
+          </div>
+
+          {/* Mood picker */}
+          <MoodSlider value={sliderValue} onChange={setSliderValue} />
+
+          {/* CTA buttons */}
+          <div className="home-ctas">
+            <button
+              className={`home-cta-btn ${isRecording ? 'home-cta-btn--recording' : 'home-cta-btn--primary'}`}
+              onClick={handleVoiceToggle}
+              disabled={orbState === 'processing' || isSubmitting}
+            >
+              {isRecording
+                ? <><span className="cta-rec-dot" /> Stop listening</>
+                : (orbState === 'processing' || isSubmitting)
+                ? <><span className="cta-pulse-dot" /> Thinking…</>
+                : <><span className="cta-pulse-dot" /> Start talking</>
+              }
+            </button>
+          </div>
+
+          {/* AI Response — lives in the left column */}
+          {displayedText && (
+            <div className="orb-response">
+              <p className="orb-response__ack">{displayedText}</p>
+
+              {isTypingDone && (
+                <div className="orb-detail">
+                  <div className="orb-detail__block">
+                    <span className="orb-detail__label">Insight</span>
+                    <p>{aiData.insight}</p>
                   </div>
-                )}
-              </>
+                  <div className="orb-detail__block orb-detail__block--action">
+                    <span className="orb-detail__label">Try this now</span>
+                    <p>{aiData.microAction}</p>
+                  </div>
+                </div>
+              )}
+
+              {orbState === 'speaking' && (
+                <button className="orb-reset-btn" onClick={handleReset} style={{ marginTop: 12 }}>
+                  Clear ✕
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Right column — Orb */}
+        <div className="home-right">
+          <div
+            className="orb-wrapper"
+            onClick={handleOrbClick}
+            title={orbState === 'idle' ? 'Tap to speak' : undefined}
+          >
+            <OrbAssistant
+              state={orbState}
+              sliderValue={sliderValue}
+              speakingHue={speakingHue}
+              amplitudeRef={amplitudeRef}
+            />
+          </div>
+
+          <div className="orb-state-label">
+            {orbState === 'idle' && <span>Tap orb to speak</span>}
+            {orbState === 'listening' && (
+              <span className="orb-label--listening">
+                <span className="listening-dot" /> Listening… {formattedTime}
+              </span>
+            )}
+            {orbState === 'processing' && (
+              <span className="orb-label--processing">Thinking…</span>
+            )}
+            {orbState === 'speaking' && (
+              <span className="orb-label--speaking">Speaking…</span>
             )}
           </div>
-        )}
-      </div>
-
-      {/* Mood Slider */}
-      <div className="mood-slider-section">
-        <div className="mood-value-label">{moodLabel}</div>
-        <div className="slider-track-wrap">
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={sliderValue}
-            onChange={(e) => setSliderValue(Number(e.target.value))}
-            className="mood-slider"
-            style={{ '--slider-pct': `${sliderValue}%` }}
-          />
-        </div>
-        <div className="slider-extremes">
-          <span>Very Unpleasant</span>
-          <span>Very Pleasant</span>
         </div>
       </div>
 
-      {/* Text Input */}
+      {/* ── Text input — full width below hero ────────── */}
       <div className="home-input-section">
         <div className="home-input-wrap">
           <textarea
