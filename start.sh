@@ -23,16 +23,22 @@ echo "  ║   Starting backend + frontend...     ║"
 echo "  ╚══════════════════════════════════════╝"
 echo -e "${NC}"
 
-# ── Check backend .env ──────────────────────────────────────────────────────
+# ── Check/Create backend .env ──────────────────────────────────────────────────────
 if [ ! -f "$BACKEND_DIR/.env" ]; then
-    echo -e "${YELLOW}⚠  backend/.env not found — copy from .env.example and add your keys${NC}"
-    exit 1
+    echo -e "${YELLOW}⚠  backend/.env not found${NC}"
+    echo -e "   App will start but may have limited functionality"
+    echo -e "   To enable all features, edit backend/.env and add API keys"
 fi
 
 # ── Install backend deps if needed ──────────────────────────────────────────
 if ! python3 -c "import fastapi" 2>/dev/null; then
     echo -e "${CYAN}📦 Installing backend dependencies...${NC}"
-    pip install -r "$BACKEND_DIR/requirements.txt" --break-system-packages -q
+    if [ -f "$BACKEND_DIR/.venv/bin/activate" ]; then
+        source "$BACKEND_DIR/.venv/bin/activate"
+    elif [ -f "$BACKEND_DIR/.venv/Scripts/activate" ]; then
+        . "$BACKEND_DIR/.venv/Scripts/activate"
+    fi
+    pip install -q -r "$BACKEND_DIR/requirements.txt"
 fi
 
 # ── Install frontend deps if needed ─────────────────────────────────────────
@@ -44,19 +50,34 @@ fi
 # ── Start backend (FastAPI on port 8000) ────────────────────────────────────
 echo -e "${GREEN}🚀 Starting backend on http://localhost:8000${NC}"
 cd "$BACKEND_DIR"
-uvicorn main:app --reload --port 8000 &
+(
+    # Activate venv if it exists
+    if [ -f ".venv/bin/activate" ]; then
+        source .venv/bin/activate
+    elif [ -f ".venv/Scripts/activate" ]; then
+        . .venv/Scripts/activate
+    fi
+    uvicorn main:app --reload --port 8000 --host 0.0.0.0
+) &
 BACKEND_PID=$!
 
 # Wait for backend to be ready
 echo -n "   Waiting for backend"
-for i in {1..15}; do
-    if curl -s http://localhost:8000/api/health > /dev/null 2>&1; then
+BACKEND_READY=0
+for i in {1..20}; do
+    if curl -s http://localhost:8000/docs > /dev/null 2>&1; then
         echo -e " ${GREEN}✓${NC}"
+        BACKEND_READY=1
         break
     fi
     echo -n "."
     sleep 1
 done
+
+if [ $BACKEND_READY -eq 0 ]; then
+    echo -e " ${YELLOW}(timeout)${NC}"
+    echo -e "   ${YELLOW}⚠  Backend may still be starting...${NC}"
+fi
 
 # ── Start frontend (Vite on port 3000) ──────────────────────────────────────
 echo -e "${GREEN}🚀 Starting frontend on http://localhost:3000${NC}"
@@ -79,10 +100,10 @@ echo ""
 cleanup() {
     echo ""
     echo -e "${YELLOW}Shutting down MindLayer...${NC}"
-    kill $BACKEND_PID 2>/dev/null
-    kill $FRONTEND_PID 2>/dev/null
-    wait $BACKEND_PID 2>/dev/null
-    wait $FRONTEND_PID 2>/dev/null
+    kill $BACKEND_PID 2>/dev/null || true
+    kill $FRONTEND_PID 2>/dev/null || true
+    wait $BACKEND_PID 2>/dev/null || true
+    wait $FRONTEND_PID 2>/dev/null || true
     echo -e "${GREEN}Done.${NC}"
 }
 
