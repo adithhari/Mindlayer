@@ -42,10 +42,17 @@ SAMHSA_API_URL = "https://findtreatment.gov/locator/listing"
 
 app = FastAPI(title="MindLayer API Proxy", version="1.0.0")
 
-# ── CORS — allow Vite dev server ────────────────────────────────────────────
+# ── CORS — allow Vite dev server + production frontends ────────────────────
+FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        FRONTEND_URL,  # Production frontend URL from env var
+    ] if FRONTEND_URL else [
         "http://localhost:3000",
         "http://localhost:5173",
         "http://127.0.0.1:3000",
