@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "MindFlyer",
+    "slug": "mindlayer-native",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mindflyer.app",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "MindFlyer needs microphone access to record your voice thoughts."
+      }
+    },
+    "android": {
+      "package": "com.mindflyer.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "permissions": ["android.permission.RECORD_AUDIO"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-av",
+        {
+          "microphonePermission": "MindFlyer needs microphone access to record your voice thoughts."
+        }
+      ]
+    ]
+  }
+}
