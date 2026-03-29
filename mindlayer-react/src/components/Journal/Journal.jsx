@@ -62,20 +62,22 @@ function TranscriptModal({ entry, onClose }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card transcript-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
-          <h2 className="modal-title">Conversation</h2>
+          <h2 className="modal-title">Conversations With MindFlyer</h2>
           <span className="modal-date">{entry.date} · {entry.time}</span>
         </div>
-        <div className="transcript-messages">
+        <div className="conversation-container">
           {entry.messages.map((msg, i) => (
-            <div key={i} className={`transcript-msg transcript-msg--${msg.role}`}>
-              <span className="transcript-msg__role">
-                {msg.role === 'user' ? 'You' : 'MindFlyer'}
-              </span>
-              <p className="transcript-msg__text">{msg.text}</p>
+            <div 
+              key={i} 
+              className={`chat-message ${msg.role === 'user' ? 'chat-message--user' : 'chat-message--ai'}`}
+            >
+              <div className="chat-bubble">
+                {msg.text}
+              </div>
             </div>
           ))}
         </div>
-        <button className="modal-btn modal-btn--ghost" onClick={onClose} style={{ marginTop: 16 }}>
+        <button className="modal-btn modal-btn--ghost" onClick={onClose}>
           Close
         </button>
       </div>

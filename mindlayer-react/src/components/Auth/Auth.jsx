@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useFirebaseStorage } from '../../hooks/useFirebaseStorage';
+import OrbAssistant from '../Orb/OrbAssistant';
 import './Auth.css';
 
 export default function Auth() {
   const { login, register, error: authError } = useAuth();
   const { saveUserProfile } = useFirebaseStorage();
   const [isLogin, setIsLogin] = useState(true);
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,11 +21,6 @@ export default function Auth() {
     // Validation
     if (!email.trim() || !password.trim()) {
       setError('Email and password are required');
-      return;
-    }
-
-    if (!isLogin && !name.trim()) {
-      setError('Name is required');
       return;
     }
 
@@ -47,9 +42,8 @@ export default function Auth() {
       } else {
         // Register new user
         const user = await register(email, password);
-        // Save user profile with name
+        // Save user profile
         await saveUserProfile({
-          name: name.trim(),
           email: email.trim(),
         });
       }
@@ -62,14 +56,16 @@ export default function Auth() {
 
   return (
     <div className="auth-container">
-      <div className="auth-card">
+      <div className="auth-content">
         <div className="auth-header">
-          <div className="auth-orb" />
-          <h1 className="auth-title">MindLayer</h1>
+          <div className="auth-orb-container">
+            <OrbAssistant state="idle" sliderValue={50} />
+          </div>
+          <h1 className="auth-title">MindFlyer</h1>
           <p className="auth-subtitle">Your personal mental clarity companion</p>
         </div>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <div className="auth-card">
           <h2 className="auth-form-title">
             {isLogin ? 'Welcome back' : 'Create your account'}
           </h2>
@@ -81,98 +77,82 @@ export default function Auth() {
             </div>
           )}
 
-          {/* Name input (signup only) */}
-          {!isLogin && (
+          <form className="auth-form" onSubmit={handleSubmit}>
+            {/* Email input */}
             <div className="auth-input-group">
-              <label htmlFor="name">Full Name</label>
+              <label htmlFor="email">Email</label>
               <input
-                id="name"
-                type="text"
+                id="email"
+                type="email"
                 className="auth-input"
-                placeholder="Your full name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
-                autoFocus
+                autoFocus={isLogin}
               />
             </div>
-          )}
 
-          {/* Email input */}
-          <div className="auth-input-group">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              className="auth-input"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-              autoFocus={isLogin}
-            />
-          </div>
-
-          {/* Password input */}
-          <div className="auth-input-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              className="auth-input"
-              placeholder={isLogin ? 'Enter your password' : 'At least 6 characters'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-
-          {/* Confirm password (signup only) */}
-          {!isLogin && (
+            {/* Password input */}
             <div className="auth-input-group">
-              <label htmlFor="confirmPassword">Confirm Password</label>
+              <label htmlFor="password">Password</label>
               <input
-                id="confirmPassword"
+                id="password"
                 type="password"
                 className="auth-input"
-                placeholder="Re-enter your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder={isLogin ? 'Enter your password' : 'At least 6 characters'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
               />
             </div>
-          )}
 
-          {/* Submit button */}
-          <button
-            type="submit"
-            className="auth-button"
-            disabled={loading}
-          >
-            {loading ? 'Processing...' : (isLogin ? 'Sign in' : 'Sign up')}
-          </button>
-        </form>
+            {/* Confirm password (signup only) */}
+            {!isLogin && (
+              <div className="auth-input-group">
+                <label htmlFor="confirmPassword">Confirm Password</label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  className="auth-input"
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+            )}
 
-        {/* Toggle between login and signup */}
-        <div className="auth-footer">
-          <p className="auth-toggle-text">
-            {isLogin ? "Don't have an account?" : 'Already have an account?'}
+            {/* Submit button */}
             <button
-              type="button"
-              className="auth-toggle-button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setName('');
-                setEmail('');
-                setPassword('');
-                setConfirmPassword('');
-                setError('');
-              }}
+              type="submit"
+              className="auth-button"
               disabled={loading}
             >
-              {isLogin ? 'Sign up' : 'Sign in'}
+              {loading ? 'Processing...' : (isLogin ? 'Sign in' : 'Sign up')}
             </button>
-          </p>
+          </form>
+
+          {/* Toggle between login and signup */}
+          <div className="auth-footer">
+            <p className="auth-toggle-text">
+              {isLogin ? "Don't have an account?" : 'Already have an account?'}
+              <button
+                type="button"
+                className="auth-toggle-button"
+                onClick={() => {
+                  setIsLogin(!isLogin);
+                  setEmail('');
+                  setPassword('');
+                  setConfirmPassword('');
+                  setError('');
+                }}
+                disabled={loading}
+              >
+                {isLogin ? 'Sign up' : 'Sign in'}
+              </button>
+            </p>
+          </div>
         </div>
       </div>
     </div>
