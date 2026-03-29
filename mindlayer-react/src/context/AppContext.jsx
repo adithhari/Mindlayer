@@ -5,11 +5,15 @@ export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   // Mood & Journal
-  const [moodLog, setMoodLog] = useState(() => 
+  const [moodLog, setMoodLog] = useState(() =>
     JSON.parse(localStorage.getItem('ml_moodlog') || '[]')
   );
   const [journalEntries, setJournalEntries] = useState(() =>
     JSON.parse(localStorage.getItem('ml_journal') || '[]')
+  );
+  // Voice transcripts — always stored regardless of user permission
+  const [voiceTranscripts, setVoiceTranscripts] = useState(() =>
+    JSON.parse(localStorage.getItem('ml_transcripts') || '[]')
   );
   
   // Streak
@@ -60,6 +64,11 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('ml_journal', JSON.stringify(journalEntries));
   }, [journalEntries]);
+
+  // Persist voice transcripts
+  useEffect(() => {
+    localStorage.setItem('ml_transcripts', JSON.stringify(voiceTranscripts));
+  }, [voiceTranscripts]);
 
   // Persist user profile
   useEffect(() => {
@@ -116,6 +125,22 @@ export const AppProvider = ({ children }) => {
     });
   }, []);
 
+  // Always saves the Vapi conversation transcript (no permission needed)
+  const addVoiceTranscript = useCallback((messages) => {
+    if (!messages || messages.length === 0) return;
+    const entry = {
+      id: Date.now(),
+      date: new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+      time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      messages,
+    };
+    setVoiceTranscripts(prev => {
+      const updated = [entry, ...prev];
+      return updated.length > 100 ? updated.slice(0, 100) : updated;
+    });
+    return entry.id;
+  }, []);
+
   const addHappinessScore = useCallback((score) => {
     setUserHappinessScores(prev => [...prev, score]);
   }, []);
@@ -134,6 +159,7 @@ export const AppProvider = ({ children }) => {
     // State
     moodLog,
     journalEntries,
+    voiceTranscripts,
     streakDays,
     chatHistory,
     userHappinessScores,
@@ -153,10 +179,11 @@ export const AppProvider = ({ children }) => {
     setReframeThought,
     setUserProfile,
     setConversationHistory,
-    
+
     // Methods
     logMood,
     addJournalEntry,
+    addVoiceTranscript,
     updateJournalEntry,
     deleteJournalEntry,
     addHappinessScore,

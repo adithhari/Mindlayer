@@ -173,8 +173,8 @@ body {
 /* ─── CTA buttons ────────────────────────────────────────────────────────────── */
 .home-ctas {
   display: flex;
+  flex-direction: row;
   gap: 10px;
-  flex-wrap: wrap;
 }
 
 .home-cta-btn {
@@ -200,10 +200,18 @@ body {
   color: #fff;
   box-shadow: 0 4px 18px rgba(99,102,241,0.32);
 }
+.home-cta-btn--secondary {
+  background: var(--bg3);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
 .home-cta-btn--recording {
   background: #EF4444;
+  color: #fff;
   box-shadow: 0 4px 18px rgba(239,68,68,0.32);
 }
+.btn-icon { font-size: 15px; }
+.home-ctas .home-cta-btn { flex: 1; justify-content: center; }
 
 /* Animated dots on CTA buttons */
 .cta-pulse-dot {
@@ -841,6 +849,157 @@ body {
 .tracker-screen { padding: 28px 20px; max-width: 600px; margin: 0 auto; animation: fadeIn 0.3s ease; }
 .tracker-screen h1 { font-size: 24px; font-weight: 600; margin-bottom: 6px; }
 .tracker-screen > p { font-size: 14px; color: var(--text2); }
+
+/* ─── Journal Tabs ────────────────────────────────────────────────────────────── */
+.journal-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 20px 20px;
+  background: var(--bg3);
+  border-radius: var(--radius-md);
+  padding: 4px;
+}
+.journal-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: calc(var(--radius-md) - 2px);
+  background: transparent;
+  color: var(--text2);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.journal-tab--active {
+  background: var(--bg1);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+.journal-tab__count {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--accent-lt);
+  color: var(--accent);
+  border-radius: 20px;
+  padding: 1px 6px;
+}
+.journal-tab--active .journal-tab__count {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ─── Transcript card ─────────────────────────────────────────────────────────── */
+.transcript-card { border-left: 3px solid var(--accent); }
+.transcript-badge {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--accent-lt);
+  color: var(--accent);
+  border-radius: 20px;
+  padding: 2px 8px;
+}
+
+/* ─── Modal overlay (shared) ──────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+.modal-card {
+  background: var(--bg1);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.modal-title { font-size: 18px; font-weight: 700; color: var(--text); }
+.modal-date  { font-size: 12px; color: var(--text3); }
+.modal-body  { font-size: 14px; color: var(--text2); line-height: 1.6; }
+.modal-preview {
+  font-size: 12px;
+  color: var(--text2);
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  max-height: 140px;
+  overflow-y: auto;
+}
+.modal-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.modal-btn {
+  padding: 11px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s;
+}
+.modal-btn--primary { background: var(--accent); color: #fff; }
+.modal-btn--primary:hover { opacity: 0.88; }
+.modal-btn--ghost  { background: var(--bg3); color: var(--text2); }
+.modal-btn--ghost:hover { opacity: 0.75; }
+
+/* ─── Transcript modal messages ───────────────────────────────────────────────── */
+.transcript-modal { max-width: 520px; max-height: 80vh; }
+.transcript-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  max-height: 50vh;
+  padding-right: 4px;
+}
+.transcript-msg { display: flex; flex-direction: column; gap: 2px; }
+.transcript-msg--user   { align-items: flex-end; }
+.transcript-msg--assistant { align-items: flex-start; }
+.transcript-msg__role {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.transcript-msg__text {
+  font-size: 14px;
+  line-height: 1.55;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  max-width: 85%;
+}
+.transcript-msg--user .transcript-msg__text {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.transcript-msg--assistant .transcript-msg__text {
+  background: var(--bg3);
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+}
 
 /* ─── Responsive ──────────────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
