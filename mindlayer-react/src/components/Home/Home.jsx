@@ -115,6 +115,11 @@ export default function Home() {
   // ── Audio recorder (quick record → transcribe → Claude) ───────────────────────
   const { isRecording, formattedTime, startRecording, stopRecording } = useAudioRecorder();
 
+  // ── Log mood to context whenever slider changes ──────────────────────────────
+  useEffect(() => {
+    logMood(moodLabel.toLowerCase(), sliderValue / 10);
+  }, [sliderValue, moodLabel, logMood]);
+
   // ── Vapi (live back-and-forth conversation) ────────────────────────────────────
   const handleCallEnd = useCallback((messages) => {
     if (!messages || messages.length === 0) return;
@@ -122,9 +127,9 @@ export default function Home() {
     setPendingTranscript(messages);
     setOrbState('idle');
     // ── Supermemory: save voice conversation summary (fire-and-forget)
+    setOrbState('idle');
     saveConversationToSupermemory(messages, moodLabel);
   }, [addVoiceTranscript, saveConversationToSupermemory, moodLabel]);
-
 
   const { callActive, connecting, startCall, endCall } = useVapi({
     onOrbState: setOrbState,
@@ -180,8 +185,8 @@ export default function Home() {
 
       logMood(moodLabel.toLowerCase(), sliderValue / 10);
       addJournalEntry(text, {
-        emotions: [{ name: result.theme || 'neutral', score: sliderValue / 100 }],
-        dominantEmotion: result.theme || 'neutral',
+        emotions: [{ name: moodLabel.toLowerCase() || 'neutral', score: sliderValue / 100 }],
+        dominantEmotion: moodLabel.toLowerCase() || 'neutral',
         intensity: Math.round(result.stressLevel / 10),
         summary: result.insight,
       }, null).catch(() => {});

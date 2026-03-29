@@ -87,15 +87,66 @@ function TranscriptModal({ entry, onClose }) {
 
 // ── Main Journal screen ────────────────────────────────────────────────────────
 export default function Journal() {
-  const { journalEntries, voiceTranscripts } = useApp();
+  const { journalEntries, voiceTranscripts, moodLog } = useApp();
   const [tab, setTab] = useState('journal'); // 'journal' | 'transcripts'
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [selectedTranscript, setSelectedTranscript] = useState(null);
+
+  // Get the current mood from the latest mood log entry
+  const currentMood = moodLog.length > 0 ? moodLog[moodLog.length - 1] : null;
+
+  const getMoodColor = (score) => {
+    if (score <= -1.5) return '#ef4444'; // red
+    if (score < -0.5) return '#f97316'; // orange
+    if (score < 0.5) return '#64748b'; // gray
+    if (score < 1.5) return '#a78bfa'; // purple
+    return '#4ade80'; // green
+  };
+
+  const getMoodLabel = (score) => {
+    if (score <= -1.5) return 'Very Negative';
+    if (score < -0.5) return 'Negative';
+    if (score < 0.5) return 'Neutral';
+    if (score < 1.5) return 'Positive';
+    return 'Very Positive';
+  };
 
   return (
     <div className="journal-screen">
       <div className="journal-header">
         <h1 className="journal-title">Journal</h1>
+        {currentMood && (
+          <div className="current-mood-indicator" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            backgroundColor: 'rgba(0, 0, 0, 0.03)',
+            marginTop: '12px',
+          }}>
+            <span style={{
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              backgroundColor: getMoodColor(currentMood.score),
+            }} />
+            <span style={{
+              fontSize: '13px',
+              fontWeight: '500',
+              color: getMoodColor(currentMood.score),
+            }}>
+              Current mood: {getMoodLabel(currentMood.score)}
+            </span>
+            <span style={{
+              fontSize: '12px',
+              color: '#666',
+              marginLeft: 'auto',
+            }}>
+              {new Date(currentMood.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* ── Tabs ── */}

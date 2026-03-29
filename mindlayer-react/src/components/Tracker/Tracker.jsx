@@ -25,6 +25,17 @@ function getMoodColor(score) {
 export default function Tracker() {
   const { moodLog, journalEntries, streakDays } = useApp();
 
+  // Get the current mood from the latest mood log entry
+  const currentMood = moodLog.length > 0 ? moodLog[moodLog.length - 1] : null;
+
+  const getMoodLabel = (score) => {
+    if (score <= 2) return 'Very Negative';
+    if (score <= 4) return 'Negative';
+    if (score <= 6) return 'Neutral';
+    if (score <= 8) return 'Positive';
+    return 'Very Positive';
+  };
+
   // Last 7 days of mood data
   const last7 = useMemo(() => {
     const days = [];
@@ -66,6 +77,52 @@ export default function Tracker() {
         <h1 className="insights-title">Insights</h1>
         <p className="insights-sub">Your mental wellness at a glance</p>
       </div>
+
+      {/* Current mood indicator */}
+      {currentMood && (
+        <div className="current-mood-card" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          padding: '12px 16px',
+          borderRadius: '12px',
+          background: `linear-gradient(135deg, ${getMoodColor(currentMood.score)}15, ${getMoodColor(currentMood.score)}08)`,
+          border: `1px solid ${getMoodColor(currentMood.score)}30`,
+          marginBottom: '20px',
+        }}>
+          <span style={{
+            width: '16px',
+            height: '16px',
+            borderRadius: '50%',
+            backgroundColor: getMoodColor(currentMood.score),
+            flexShrink: 0,
+          }} />
+          <div style={{ flex: 1 }}>
+            <span style={{
+              fontSize: '14px',
+              fontWeight: '600',
+              color: getMoodColor(currentMood.score),
+              display: 'block',
+            }}>
+              Current mood: {getMoodLabel(currentMood.score)}
+            </span>
+            <span style={{
+              fontSize: '12px',
+              color: '#666',
+              display: 'block',
+            }}>
+              {new Date(currentMood.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+          <span style={{
+            fontSize: '20px',
+            fontWeight: 'bold',
+            color: getMoodColor(currentMood.score),
+          }}>
+            {currentMood.score}
+          </span>
+        </div>
+      )}
 
       {/* Stat row */}
       <div className="insights-stats">
