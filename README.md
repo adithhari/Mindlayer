@@ -1,4 +1,4 @@
-# MindLayer: AI-Powered Mental Health Support
+# MindLayer: AI-Powered Journal
 
 <div align="center">
 
