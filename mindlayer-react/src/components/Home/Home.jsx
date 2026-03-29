@@ -246,7 +246,7 @@ export default function Home() {
   const isBusy = isSubmitting || isRecording || callActive || connecting;
 
   return (
-    <div className="home-screen">
+    <div className={`home-screen ${callActive ? 'home-screen--conversation' : ''}`}>
       {/* Logout button - top right */}
       <button 
         className="logout-btn"
@@ -388,6 +388,16 @@ export default function Home() {
             )}
             {orbState === 'speaking'   && <span className="orb-label--speaking">Speaking…</span>}
           </div>
+
+          {callActive && (
+            <button
+              className="stop-conversation-btn"
+              onClick={handleConvoToggle}
+              title="End the conversation"
+            >
+              <span className="cta-rec-dot" /> STOP CONVERSATION
+            </button>
+          )}
         </div>
       </div>
 
