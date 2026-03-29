@@ -1,84 +1,84 @@
-<svg width="680" viewBox="0 0 680 680" xmlns="http://www.w3.org/2000/svg" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff;">
+<svg width="680" viewBox="0 0 680 660" xmlns="http://www.w3.org/2000/svg" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff;">
   <style>
     .th { font-size: 14px; font-weight: 500; fill: #1a1a1a; }
     .ts { font-size: 12px; fill: #666; }
-    .purple-box { fill: #EEEDFE; stroke: #534AB7; stroke-width: 0.5; }
-    .teal-box { fill: #E1F5EE; stroke: #0F6E56; stroke-width: 0.5; }
-    .teal-inner { fill: #9FE1CB; stroke: #0F6E56; stroke-width: 0.5; }
-    .coral-box { fill: #FAECE7; stroke: #993C1D; stroke-width: 0.5; }
-    .coral-inner { fill: #F5C4B3; stroke: #993C1D; stroke-width: 0.5; }
-    .gray-box { fill: #F1EFE8; stroke: #5F5E5A; stroke-width: 0.5; }
-    .gray-inner { fill: #D3D1C7; stroke: #5F5E5A; stroke-width: 0.5; }
-    .th-purple { font-size: 14px; font-weight: 500; fill: #3C3489; }
-    .ts-purple { font-size: 12px; fill: #534AB7; }
-    .th-teal { font-size: 14px; font-weight: 500; fill: #085041; }
-    .ts-teal { font-size: 12px; fill: #0F6E56; }
-    .th-coral { font-size: 14px; font-weight: 500; fill: #712B13; }
-    .ts-coral { font-size: 12px; fill: #993C1D; }
-    .th-gray { font-size: 14px; font-weight: 500; fill: #444441; }
-    .ts-gray { font-size: 12px; fill: #5F5E5A; }
+    .p { fill: #EEEDFE; stroke: #534AB7; stroke-width: 0.5; }
+    .t { fill: #E1F5EE; stroke: #0F6E56; stroke-width: 0.5; }
+    .ti { fill: #9FE1CB; stroke: #0F6E56; stroke-width: 0.5; }
+    .c { fill: #FAECE7; stroke: #993C1D; stroke-width: 0.5; }
+    .ci { fill: #F5C4B3; stroke: #993C1D; stroke-width: 0.5; }
+    .gi { fill: #D3D1C7; stroke: #5F5E5A; stroke-width: 0.5; }
+    .tp { font-size: 14px; font-weight: 500; fill: #3C3489; }
+    .sp { font-size: 12px; fill: #534AB7; }
+    .tt { font-size: 14px; font-weight: 500; fill: #085041; }
+    .st { font-size: 12px; fill: #0F6E56; }
+    .tc { font-size: 14px; font-weight: 500; fill: #712B13; }
+    .sc { font-size: 12px; fill: #993C1D; }
+    .tg { font-size: 14px; font-weight: 500; fill: #444441; }
+    .sg { font-size: 12px; fill: #5F5E5A; }
     .arr { stroke: #888; stroke-width: 1.5; }
-    line.arr { marker-end: url(#a2); }
+    line.arr { marker-end: url(#a); }
   </style>
-  <defs><marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+  <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
 
   <text class="th" x="340" y="24" text-anchor="middle">Supermemory integration architecture</text>
 
-  <rect class="purple-box" x="40" y="44" width="600" height="160" rx="16"/>
-  <text class="th-purple" x="340" y="68" text-anchor="middle">Frontend (React)</text>
-  <rect class="purple-box" x="60" y="84" width="170" height="50" rx="8"/>
-  <text class="th-purple" x="145" y="102" text-anchor="middle" dominant-baseline="central">AppContext.jsx</text>
-  <text class="ts-purple" x="145" y="122" text-anchor="middle" dominant-baseline="central">Holds userMemoryCard</text>
-  <rect class="purple-box" x="250" y="84" width="170" height="50" rx="8"/>
-  <text class="th-purple" x="335" y="102" text-anchor="middle" dominant-baseline="central">supermemory.js</text>
-  <text class="ts-purple" x="335" y="122" text-anchor="middle" dominant-baseline="central">Client-side functions</text>
-  <rect class="purple-box" x="440" y="84" width="186" height="50" rx="8"/>
-  <text class="th-purple" x="533" y="102" text-anchor="middle" dominant-baseline="central">api.js — analyzeEntry</text>
-  <text class="ts-purple" x="533" y="122" text-anchor="middle" dominant-baseline="central">Injects user card</text>
-  <rect class="purple-box" x="60" y="148" width="170" height="40" rx="6"/>
-  <text class="ts-purple" x="145" y="172" text-anchor="middle" dominant-baseline="central">Home.jsx — triggers save</text>
-  <rect class="purple-box" x="250" y="148" width="170" height="40" rx="6"/>
-  <text class="ts-purple" x="335" y="172" text-anchor="middle" dominant-baseline="central">CrisisOverlay.jsx</text>
+  <rect class="p" x="40" y="42" width="600" height="154" rx="16"/>
+  <text class="tp" x="340" y="66" text-anchor="middle">Frontend — 4 files interact with Supermemory</text>
+  <rect class="p" x="60" y="82" width="170" height="50" rx="8"/>
+  <text class="tp" x="145" y="100" text-anchor="middle" dominant-baseline="central">AppContext.jsx</text>
+  <text class="sp" x="145" y="120" text-anchor="middle" dominant-baseline="central">Holds userMemoryCard</text>
+  <rect class="p" x="250" y="82" width="170" height="50" rx="8"/>
+  <text class="tp" x="335" y="100" text-anchor="middle" dominant-baseline="central">supermemory.js</text>
+  <text class="sp" x="335" y="120" text-anchor="middle" dominant-baseline="central">API client functions</text>
+  <rect class="p" x="440" y="82" width="186" height="50" rx="8"/>
+  <text class="tp" x="533" y="100" text-anchor="middle" dominant-baseline="central">api.js — analyzeEntry</text>
+  <text class="sp" x="533" y="120" text-anchor="middle" dominant-baseline="central">Injects card into Claude</text>
+  <rect class="p" x="60" y="146" width="170" height="34" rx="6"/>
+  <text class="sp" x="145" y="167" text-anchor="middle" dominant-baseline="central">Home.jsx — triggers save</text>
+  <rect class="p" x="250" y="146" width="170" height="34" rx="6"/>
+  <text class="sp" x="335" y="167" text-anchor="middle" dominant-baseline="central">CrisisOverlay.jsx</text>
 
-  <line x1="335" y1="134" x2="335" y2="228" class="arr"/>
-  <text class="ts" x="340" y="218" text-anchor="middle">fetch('/api/memory/*')</text>
+  <text class="ts" x="340" y="214" text-anchor="middle">fetch('/api/memory/*')</text>
+  <line x1="340" y1="196" x2="340" y2="228" class="arr"/>
 
-  <rect class="teal-box" x="40" y="236" width="600" height="120" rx="16"/>
-  <text class="th-teal" x="340" y="260" text-anchor="middle">FastAPI backend — main.py</text>
-  <rect class="teal-inner" x="60" y="276" width="260" height="56" rx="8"/>
-  <text class="th-teal" x="190" y="296" text-anchor="middle" dominant-baseline="central">POST /api/memory/add</text>
-  <text class="ts-teal" x="190" y="316" text-anchor="middle" dominant-baseline="central">Proxies to Supermemory v3/add</text>
-  <rect class="teal-inner" x="340" y="276" width="288" height="56" rx="8"/>
-  <text class="th-teal" x="484" y="296" text-anchor="middle" dominant-baseline="central">POST /api/memory/search</text>
-  <text class="ts-teal" x="484" y="316" text-anchor="middle" dominant-baseline="central">Proxies to Supermemory v3/search</text>
+  <rect class="t" x="40" y="236" width="600" height="110" rx="16"/>
+  <text class="tt" x="340" y="260" text-anchor="middle">FastAPI backend — main.py</text>
+  <rect class="ti" x="60" y="276" width="260" height="50" rx="8"/>
+  <text class="tt" x="190" y="294" text-anchor="middle" dominant-baseline="central">POST /api/memory/add</text>
+  <text class="st" x="190" y="314" text-anchor="middle" dominant-baseline="central">Proxies to Supermemory v3/add</text>
+  <rect class="ti" x="340" y="276" width="288" height="50" rx="8"/>
+  <text class="tt" x="484" y="294" text-anchor="middle" dominant-baseline="central">POST /api/memory/search</text>
+  <text class="st" x="484" y="314" text-anchor="middle" dominant-baseline="central">Proxies to Supermemory v3/search</text>
 
-  <line x1="190" y1="356" x2="190" y2="406" class="arr"/>
-  <line x1="484" y1="356" x2="484" y2="406" class="arr"/>
-  <text class="ts" x="340" y="390" text-anchor="middle">SUPERMEMORY_API_KEY (server-side only)</text>
+  <text class="ts" x="340" y="362" text-anchor="middle">SUPERMEMORY_API_KEY (server-side only)</text>
+  <line x1="190" y1="326" x2="190" y2="386" class="arr"/>
+  <line x1="484" y1="326" x2="484" y2="386" class="arr"/>
 
-  <rect class="coral-box" x="40" y="414" width="600" height="130" rx="16"/>
-  <text class="th-coral" x="340" y="438" text-anchor="middle">Supermemory cloud (api.supermemory.ai/v3)</text>
-  <rect class="coral-inner" x="60" y="454" width="170" height="50" rx="8"/>
-  <text class="th-coral" x="145" y="472" text-anchor="middle" dominant-baseline="central">Memory graph</text>
-  <text class="ts-coral" x="145" y="492" text-anchor="middle" dominant-baseline="central">Evolves over time</text>
-  <rect class="coral-inner" x="250" y="454" width="170" height="50" rx="8"/>
-  <text class="th-coral" x="335" y="472" text-anchor="middle" dominant-baseline="central">User profile</text>
-  <text class="ts-coral" x="335" y="492" text-anchor="middle" dominant-baseline="central">Static + dynamic facts</text>
-  <rect class="coral-inner" x="440" y="454" width="186" height="50" rx="8"/>
-  <text class="th-coral" x="533" y="472" text-anchor="middle" dominant-baseline="central">Semantic search</text>
-  <text class="ts-coral" x="533" y="492" text-anchor="middle" dominant-baseline="central">Vector + keyword</text>
-  <text class="ts" x="340" y="528" text-anchor="middle">Scoped by container tag: mindlayer_user_{firebase_uid}</text>
+  <rect class="c" x="40" y="394" width="600" height="120" rx="16"/>
+  <text class="tc" x="340" y="418" text-anchor="middle">Supermemory cloud (api.supermemory.ai/v3)</text>
+  <rect class="ci" x="60" y="434" width="170" height="50" rx="8"/>
+  <text class="tc" x="145" y="452" text-anchor="middle" dominant-baseline="central">Memory graph</text>
+  <text class="sc" x="145" y="472" text-anchor="middle" dominant-baseline="central">Evolves over time</text>
+  <rect class="ci" x="250" y="434" width="170" height="50" rx="8"/>
+  <text class="tc" x="335" y="452" text-anchor="middle" dominant-baseline="central">User profile</text>
+  <text class="sc" x="335" y="472" text-anchor="middle" dominant-baseline="central">Static + dynamic facts</text>
+  <rect class="ci" x="440" y="434" width="186" height="50" rx="8"/>
+  <text class="tc" x="533" y="452" text-anchor="middle" dominant-baseline="central">Semantic search</text>
+  <text class="sc" x="533" y="472" text-anchor="middle" dominant-baseline="central">Vector + keyword</text>
+  <text class="ts" x="340" y="502" text-anchor="middle">Scoped by: mindlayer_user_{firebase_uid}</text>
 
-  <text class="th" x="340" y="576" text-anchor="middle">What gets stored per entry (structured, not raw)</text>
-  <rect class="gray-inner" x="56" y="592" width="110" height="36" rx="6"/>
-  <text class="ts-gray" x="111" y="614" text-anchor="middle" dominant-baseline="central">Date + mood</text>
-  <rect class="gray-inner" x="180" y="592" width="110" height="36" rx="6"/>
-  <text class="ts-gray" x="235" y="614" text-anchor="middle" dominant-baseline="central">Theme</text>
-  <rect class="gray-inner" x="304" y="592" width="110" height="36" rx="6"/>
-  <text class="ts-gray" x="359" y="614" text-anchor="middle" dominant-baseline="central">Stress level</text>
-  <rect class="gray-inner" x="428" y="592" width="110" height="36" rx="6"/>
-  <text class="ts-gray" x="483" y="614" text-anchor="middle" dominant-baseline="central">Insight</text>
-  <rect class="gray-inner" x="552" y="592" width="90" height="36" rx="6"/>
-  <text class="ts-gray" x="597" y="614" text-anchor="middle" dominant-baseline="central">Snippet</text>
-  <text class="ts" x="340" y="654" text-anchor="middle">Raw dumps are NOT stored — only structured summaries (privacy by design)</text>
+  <text class="th" x="340" y="548" text-anchor="middle">What gets stored per entry (structured, not raw)</text>
+  <rect class="gi" x="48" y="564" width="106" height="34" rx="6"/>
+  <text class="sg" x="101" y="585" text-anchor="middle" dominant-baseline="central">Date + mood</text>
+  <rect class="gi" x="164" y="564" width="100" height="34" rx="6"/>
+  <text class="sg" x="214" y="585" text-anchor="middle" dominant-baseline="central">Theme</text>
+  <rect class="gi" x="274" y="564" width="110" height="34" rx="6"/>
+  <text class="sg" x="329" y="585" text-anchor="middle" dominant-baseline="central">Stress level</text>
+  <rect class="gi" x="394" y="564" width="100" height="34" rx="6"/>
+  <text class="sg" x="444" y="585" text-anchor="middle" dominant-baseline="central">Insight</text>
+  <rect class="gi" x="504" y="564" width="130" height="34" rx="6"/>
+  <text class="sg" x="569" y="585" text-anchor="middle" dominant-baseline="central">Text snippet</text>
+
+  <text class="ts" x="340" y="626" text-anchor="middle">Raw dumps are never stored — only structured summaries (privacy by design)</text>
 </svg>
