@@ -120,11 +120,11 @@ export default function Home() {
     if (!messages || messages.length === 0) return;
     addVoiceTranscript(messages);
     setPendingTranscript(messages);
+    setOrbState('idle');
     // ── Supermemory: save voice conversation summary (fire-and-forget)
     saveConversationToSupermemory(messages, moodLabel);
   }, [addVoiceTranscript, saveConversationToSupermemory, moodLabel]);
-    setOrbState('idle');
-  }, [addVoiceTranscript]);
+
 
   const { callActive, connecting, startCall, endCall } = useVapi({
     onOrbState: setOrbState,
