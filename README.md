@@ -326,15 +326,6 @@ This project was built for the **IU Claude Hackathon 2026** and is provided as-i
 
 ---
 
-## 🔗 Resources
-
-- **Hackathon Info:** [Claude Hackathon at IU](https://claude-hackathon-at-iu.netlify.app)
-- **Crisis Resources:** [988 Lifeline (US)](https://988lifeline.org)
-- **Anthropic Docs:** [Claude API Reference](https://docs.anthropic.com)
-- **LangGraph Docs:** [State Graphs & Multi-Agent Orchestration](https://langchain-ai.github.io/langgraph/)
-
----
-
 ## 💬 Support
 
 Have questions or found an issue? 
@@ -377,7 +368,3 @@ Have questions or found an issue?
 
 ---
 
-## Submission
-
-[Hackathon submission form](https://docs.google.com/forms/d/e/1FAIpQLSd3C9Lms7pnerrVI3H1BBgH2xvT9CEag_hXpqREKMciu5gdyQ/viewform)
-# Mindlayer
