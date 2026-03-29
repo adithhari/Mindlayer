@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../hooks/useAuth';
 import MoodPills from './MoodPills';
 import Streak from './Streak';
 
 export default function Dashboard() {
-  const { logMood, streakDays } = useApp();
+  const { logMood, streakDays, userProfile } = useApp();
+  const { logout } = useAuth();
   const [greeting, setGreeting] = useState('');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     const h = new Date().getHours();
@@ -13,13 +16,34 @@ export default function Dashboard() {
     setGreeting(greet);
   }, []);
 
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Logout failed:', err);
+      setIsLoggingOut(false);
+    }
+  };
+
   return (
     <div className="screen dashboard-screen">
       <div className="dashboard-header">
         <h1>
-          <span id="time-greeting">{greeting}</span>, you 💚
+          <span id="time-greeting">{greeting}</span>
+          {userProfile?.name ? `, ${userProfile.name}` : ', you'} 💚
         </h1>
-        <Streak days={streakDays} />
+        <div className="dashboard-header-actions">
+          <Streak days={streakDays} />
+          <button 
+            className="logout-btn"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            title="Sign out"
+          >
+            {isLoggingOut ? '...' : '↗'}
+          </button>
+        </div>
       </div>
 
       <div className="dashboard-content">

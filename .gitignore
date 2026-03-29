@@ -22,25 +22,43 @@ htmlcov/
 .coverage.*
 .claude.md
 
-# Node.js / Frontend
+# Node.js / Frontend (Vite + React)
 node_modules/
+mindlayer-react/node_modules/
+mindlayer-react/dist/
+mindlayer-react/.vite/
+mindlayer-react/build/
 frontend/dist/
 frontend/.vite/
 frontend/build/
 *.tsbuildinfo
+.cache/
+.parcel-cache/
+package-lock.json
 
 # macOS
 .DS_Store
 .AppleDouble
 .LSOverride
+Thumbs.db
 
 # IDEs
 .idea/
 .vscode/
+.VS/
 *.swp
 *.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+.thumbs.db
 
 # Secrets (belt AND suspenders)
 backend/.env
+.env
 .env.local
+.env.*.local
 .env.production
+.env.production.local
