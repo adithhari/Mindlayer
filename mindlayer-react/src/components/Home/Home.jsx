@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { BiLogOut } from 'react-icons/bi';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../hooks/useAuth';
 import { analyzeEntry, deepgramSpeechToText, deepgramTextToSpeech } from '../../utils/api';
@@ -119,10 +120,11 @@ export default function Home() {
     if (!messages || messages.length === 0) return;
     addVoiceTranscript(messages);
     setPendingTranscript(messages);
-
     // ── Supermemory: save voice conversation summary (fire-and-forget)
     saveConversationToSupermemory(messages, moodLabel);
   }, [addVoiceTranscript, saveConversationToSupermemory, moodLabel]);
+    setOrbState('idle');
+  }, [addVoiceTranscript]);
 
   const { callActive, connecting, startCall, endCall } = useVapi({
     onOrbState: setOrbState,
@@ -235,6 +237,7 @@ export default function Home() {
   const handleConvoToggle = () => {
     if (isRecording) return; // don't allow during recording
     if (callActive || connecting) {
+      setOrbState('idle');
       endCall();
     } else {
       startCall(userProfile?.name || '', moodLabel);
@@ -278,25 +281,41 @@ export default function Home() {
   const isBusy = isSubmitting || isRecording || callActive || connecting;
 
   return (
-    <div className="home-screen">
-      {/* Header */}
-      <div className="home-header-top">
-        <div>
-          <span className="home-greeting">
-            {greeting}
-            {userProfile?.name && `, ${userProfile.name}`}
-          </span>
-          <span className="home-tagline">How are you feeling?</span>
-        </div>
-        <button 
-          className="logout-btn"
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-          title="Sign out"
-        >
-          {isLoggingOut ? '...' : '↗'}
-        </button>
-      </div>
+    <div className={`home-screen ${callActive ? 'home-screen--conversation' : ''}`}>
+      {/* Logout button - top right */}
+      <button 
+        className="logout-btn"
+        onClick={handleLogout}
+        disabled={isLoggingOut}
+        title="Sign out"
+        style={{
+          position: 'absolute',
+          top: 16,
+          right: 16,
+          zIndex: 10,
+          background: '#f0f0f5',
+          border: 'none',
+          borderRadius: '12px',
+          padding: '8px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          opacity: isLoggingOut ? 0.6 : 1,
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = '#e8e8f0';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.12)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = '#f0f0f5';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+        }}
+      >
+        <BiLogOut size={20} color="#4a5568" />
+      </button>
 
       {/* Memory loading indicator (subtle, only on first load) */}
       {memoryLoading && (
@@ -417,6 +436,16 @@ export default function Home() {
             )}
             {orbState === 'speaking'   && <span className="orb-label--speaking">Speaking…</span>}
           </div>
+
+          {callActive && (
+            <button
+              className="stop-conversation-btn"
+              onClick={handleConvoToggle}
+              title="End the conversation"
+            >
+              <span className="cta-rec-dot" /> STOP CONVERSATION
+            </button>
+          )}
         </div>
       </div>
 
