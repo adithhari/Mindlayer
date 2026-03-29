@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
-import { analyzeEntry, deepgramSpeechToText } from '../../utils/api';
+import { useAuth } from '../../hooks/useAuth';
+import { analyzeEntry, deepgramSpeechToText, deepgramTextToSpeech } from '../../utils/api';
 import { checkCrisis } from '../../utils/constants';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
 import { useVapi } from '../../hooks/useVapi';
@@ -69,11 +70,13 @@ function SaveJournalModal({ transcript, onSave, onSkip }) {
 }
 
 export default function Home() {
-  const { logMood, addJournalEntry, addVoiceTranscript, userProfile, conversationHistory, setConversationHistory } = useApp();
 
+  const { logMood, addJournalEntry, addVoiceTranscript, userProfile, conversationHistory, setConversationHistory } = useApp();
+  const { logout } = useAuth();
   const [orbState, setOrbState] = useState('idle');
   const [speakingHue, setSpeakingHue] = useState(null);
   const [sliderValue, setSliderValue] = useState(50);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const moodLabel = getMoodLabel(sliderValue);
 
   // Text / record path state
@@ -223,6 +226,14 @@ export default function Home() {
       .join('\n');
     addJournalEntry(fullText, { dominantEmotion: 'neutral', summary: 'Voice conversation with MindFlyer' }, null).catch(() => {});
     setPendingTranscript(null);
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Logout failed:', err);
+      setIsLoggingOut(false);
+    }
   };
 
   const isTypingDone = aiData && displayedText === aiData.acknowledgment;
@@ -231,6 +242,24 @@ export default function Home() {
 
   return (
     <div className="home-screen">
+      {/* Header */}
+      <div className="home-header-top">
+        <div>
+          <span className="home-greeting">
+            {greeting}
+            {userProfile?.name && `, ${userProfile.name}`}
+          </span>
+          <span className="home-tagline">How are you feeling?</span>
+        </div>
+        <button 
+          className="logout-btn"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          title="Sign out"
+        >
+          {isLoggingOut ? '...' : '↗'}
+        </button>
+      </div>
 
       {/* ── Hero split ──────────────────────────────────────────────────────── */}
       <div className="home-hero">

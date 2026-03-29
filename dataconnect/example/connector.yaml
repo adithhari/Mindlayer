@@ -1,0 +1,8 @@
+connectorId: example
+generate:
+  javascriptSdk:
+    - outputDir: ../../mindlayer-react/src/dataconnect-generated
+      package: "@dataconnect/generated"
+      packageJsonDir: ../../mindlayer-react
+      react: true
+      angular: false
