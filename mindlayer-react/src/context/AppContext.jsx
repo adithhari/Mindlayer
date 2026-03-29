@@ -1,5 +1,12 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { generateJournalHeading } from '../utils/api';
+import {
+  loadUserProfile,
+  buildUserCard,
+  saveEntry,
+  formatEntryForMemory,
+  saveConversationMemory,
+} from '../utils/supermemory';
 
 export const AppContext = createContext();
 
@@ -30,6 +37,15 @@ export const AppProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : null;
   });
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // SUPERMEMORY: Persistent user memory card
+  // This compact string (~50-100 tokens) gets injected into every Claude call.
+  // Loaded once on auth, refreshed after each session.
+  // ─────────────────────────────────────────────────────────────────────────
+  const [userMemoryCard, setUserMemoryCard] = useState('');
+  const [memoryLoading, setMemoryLoading] = useState(false);
+  const memoryLoadedRef = useRef(false);
+
   // Conversation history for multi-turn context
   const [conversationHistory, setConversationHistory] = useState([]);
   
@@ -54,6 +70,41 @@ export const AppProvider = ({ children }) => {
       setLastVisit(today);
     }
   }, []);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SUPERMEMORY: Load user profile on app mount (when userProfile is set)
+  // This runs once after onboarding or login.
+  // ─────────────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!userProfile || memoryLoadedRef.current) return;
+
+    const loadMemory = async () => {
+      setMemoryLoading(true);
+      try {
+        // Use Firebase UID if available, fall back to name-based ID
+        const userId = userProfile.uid || userProfile.name || 'demo_user';
+        console.log('[Memory] Loading profile for:', userId);
+
+        const profile = await loadUserProfile(userId);
+        const card = buildUserCard(profile, userProfile.name || '');
+
+        if (card) {
+          setUserMemoryCard(card);
+          console.log('[Memory] User card loaded:', card.slice(0, 100) + '...');
+        } else {
+          console.log('[Memory] No past memories — starting fresh');
+        }
+        memoryLoadedRef.current = true;
+      } catch (err) {
+        console.error('[Memory] Failed to load profile:', err);
+        // Non-blocking — app works fine without memory
+      } finally {
+        setMemoryLoading(false);
+      }
+    };
+
+    loadMemory();
+  }, [userProfile]);
 
   // Persist mood log
   useEffect(() => {
@@ -104,7 +155,6 @@ export const AppProvider = ({ children }) => {
         title = await generateJournalHeading(summary, dominantEmotion);
       } catch (err) {
         console.error("❌ Failed to generate heading:", err);
-        // Continue without heading if generation fails
       }
     }
 
@@ -141,6 +191,77 @@ export const AppProvider = ({ children }) => {
     return entry.id;
   }, []);
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // SUPERMEMORY: Save an entry to persistent memory after analysis.
+  // Called from Home.jsx after analyzeEntry() returns.
+  // Fire-and-forget — never blocks the UI.
+  // ─────────────────────────────────────────────────────────────────────────
+  const saveToSupermemory = useCallback(async ({
+    moodLabel = 'Neutral',
+    theme = 'neutral',
+    stressLevel = 50,
+    insight = '',
+    textSnippet = '',
+    intervention = '',
+  }) => {
+    const userId = userProfile?.uid || userProfile?.name || 'demo_user';
+
+    const content = formatEntryForMemory({
+      moodLabel,
+      theme,
+      stressLevel,
+      insight,
+      textSnippet,
+      intervention,
+    });
+
+    // Fire-and-forget — don't await in the calling code
+    saveEntry(userId, content, {
+      mood: moodLabel,
+      theme,
+      stressLevel,
+    }).then((result) => {
+      if (result) {
+        console.log('[Memory] Entry saved to Supermemory');
+      }
+    }).catch((err) => {
+      console.error('[Memory] Save failed (non-blocking):', err);
+    });
+  }, [userProfile]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SUPERMEMORY: Save a Vapi conversation summary to persistent memory.
+  // ─────────────────────────────────────────────────────────────────────────
+  const saveConversationToSupermemory = useCallback(async (messages, moodLabel = 'Neutral') => {
+    const userId = userProfile?.uid || userProfile?.name || 'demo_user';
+    saveConversationMemory(userId, messages, moodLabel).catch((err) => {
+      console.error('[Memory] Conversation save failed (non-blocking):', err);
+    });
+  }, [userProfile]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SUPERMEMORY: Refresh the user card (called after saving new entries).
+  // Debounced — only refreshes if 30+ seconds since last load.
+  // ─────────────────────────────────────────────────────────────────────────
+  const lastRefreshRef = useRef(0);
+  const refreshUserMemory = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastRefreshRef.current < 30000) return; // Debounce: 30s
+    lastRefreshRef.current = now;
+
+    const userId = userProfile?.uid || userProfile?.name || 'demo_user';
+    try {
+      const profile = await loadUserProfile(userId);
+      const card = buildUserCard(profile, userProfile?.name || '');
+      if (card) {
+        setUserMemoryCard(card);
+        console.log('[Memory] User card refreshed');
+      }
+    } catch (err) {
+      console.error('[Memory] Refresh failed:', err);
+    }
+  }, [userProfile]);
+
   const addHappinessScore = useCallback((score) => {
     setUserHappinessScores(prev => [...prev, score]);
   }, []);
@@ -168,6 +289,8 @@ export const AppProvider = ({ children }) => {
     reframeThought,
     userProfile,
     conversationHistory,
+    userMemoryCard,      // ← NEW: compact memory string for Claude
+    memoryLoading,       // ← NEW: true while loading from Supermemory
 
     // Setters
     setMoodLog,
@@ -187,6 +310,9 @@ export const AppProvider = ({ children }) => {
     updateJournalEntry,
     deleteJournalEntry,
     addHappinessScore,
+    saveToSupermemory,             // ← NEW: save entry to persistent memory
+    saveConversationToSupermemory, // ← NEW: save voice conversation to memory
+    refreshUserMemory,             // ← NEW: refresh memory card after saves
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

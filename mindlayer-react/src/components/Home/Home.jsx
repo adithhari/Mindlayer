@@ -72,7 +72,20 @@ function SaveJournalModal({ transcript, onSave, onSkip }) {
 
 export default function Home() {
 
-  const { logMood, addJournalEntry, addVoiceTranscript, userProfile, conversationHistory, setConversationHistory } = useApp();
+  const {
+    logMood,
+    addJournalEntry,
+    addVoiceTranscript,
+    userProfile,
+    conversationHistory,
+    setConversationHistory,
+    // ── Supermemory ──
+    userMemoryCard,
+    memoryLoading,
+    saveToSupermemory,
+    saveConversationToSupermemory,
+    refreshUserMemory,
+  } = useApp();
   const { logout } = useAuth();
   const [orbState, setOrbState] = useState('idle');
   const [speakingHue, setSpeakingHue] = useState(null);
@@ -107,6 +120,9 @@ export default function Home() {
     if (!messages || messages.length === 0) return;
     addVoiceTranscript(messages);
     setPendingTranscript(messages);
+    // ── Supermemory: save voice conversation summary (fire-and-forget)
+    saveConversationToSupermemory(messages, moodLabel);
+  }, [addVoiceTranscript, saveConversationToSupermemory, moodLabel]);
     setOrbState('idle');
   }, [addVoiceTranscript]);
 
@@ -146,7 +162,14 @@ export default function Home() {
     const recentThemes = conversationHistory.filter(m => m.theme).slice(-3).map(m => m.theme);
 
     try {
-      const result = await analyzeEntry(text, userProfile?.name || '', moodLabel, recentThemes);
+      // ── Pass userMemoryCard to Claude for personalized responses ──
+      const result = await analyzeEntry(
+        text,
+        userProfile?.name || '',
+        moodLabel,
+        recentThemes,
+        userMemoryCard,  // ← Supermemory context injected here
+      );
       setConversationHistory(prev => [...prev, { role: 'user', text, theme: result.theme }]);
 
       const hue = themeToHue(result.theme);
@@ -162,6 +185,18 @@ export default function Home() {
         intensity: Math.round(result.stressLevel / 10),
         summary: result.insight,
       }, null).catch(() => {});
+
+      // ── Supermemory: save this entry to persistent memory (fire-and-forget) ──
+      saveToSupermemory({
+        moodLabel,
+        theme: result.theme || 'neutral',
+        stressLevel: result.stressLevel || 50,
+        insight: result.insight || '',
+        textSnippet: text.slice(0, 200),
+      });
+
+      // Refresh memory card in background (debounced, won't run every time)
+      refreshUserMemory();
 
       setInputText('');
     } catch (err) {
@@ -281,6 +316,19 @@ export default function Home() {
       >
         <BiLogOut size={20} color="#4a5568" />
       </button>
+
+      {/* Memory loading indicator (subtle, only on first load) */}
+      {memoryLoading && (
+        <div className="memory-loading-hint" style={{
+          textAlign: 'center',
+          fontSize: 12,
+          color: 'var(--accent, #6BB5C9)',
+          opacity: 0.7,
+          padding: '4px 0',
+        }}>
+          Loading your memory...
+        </div>
+      )}
 
       {/* ── Hero split ──────────────────────────────────────────────────────── */}
       <div className="home-hero">
