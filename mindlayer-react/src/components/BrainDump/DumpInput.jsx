@@ -75,25 +75,61 @@ export default function DumpInput({ value, onChange, mode, onAnalyze, loading })
 
   return (
     <div className="dump-input-section">
-      <textarea
-        className="dump-input"
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={loading || isRecording}
-      />
-      <div className="dump-footer">
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1 }}>
-          {/* Analyze Button */}
-          <button
-            className="primary-btn dump-btn"
-            onClick={onAnalyze}
-            disabled={loading || !value.trim() || isRecording || isTranscribing}
-            style={{ flex: 1 }}
-          >
-            {loading ? 'Analyzing...' : btnText}
-          </button>
+      <div style={{ position: 'relative', width: '100%' }}>
+        <textarea
+          className="dump-input"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={loading || isRecording}
+          style={{
+            width: '100%',
+            minHeight: '240px',
+            padding: '16px 16px 60px 16px',
+            paddingRight: '100px',
+            border: '2px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
+            fontSize: '15px',
+            lineHeight: '1.6',
+            fontFamily: 'inherit',
+            resize: 'vertical',
+            boxSizing: 'border-box',
+            backgroundColor: 'var(--bg1)',
+            color: 'var(--text)',
+            transition: 'border-color 0.2s',
+            marginBottom: '0'
+          }}
+        />
+        
+        {/* Floating Analyze Button */}
+        <button
+          className="primary-btn dump-btn"
+          onClick={onAnalyze}
+          disabled={loading || !value.trim() || isRecording || isTranscribing}
+          style={{
+            position: 'absolute',
+            bottom: '12px',
+            right: '12px',
+            padding: '10px 14px',
+            background: loading || !value.trim() ? 'var(--text3)' : 'var(--accent)',
+            color: 'white',
+            border: 'none',
+            borderRadius: 'var(--radius-sm)',
+            cursor: loading || !value.trim() ? 'not-allowed' : 'pointer',
+            fontSize: '13px',
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            transition: 'all 0.3s ease',
+            opacity: loading || !value.trim() ? 0.6 : 1,
+            zIndex: 10
+          }}
+        >
+          {loading ? 'Analyzing...' : '→'}
+        </button>
+      </div>
 
+      <div className="dump-footer">
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, marginTop: '12px' }}>
           {/* Speech to Text Button */}
           <button
             onClick={isRecording ? handleStopRecording : handleStartRecording}
@@ -145,6 +181,7 @@ export default function DumpInput({ value, onChange, mode, onAnalyze, loading })
               <>🎙️ Speak</>
             )}
           </button>
+          <span style={{ flex: 1 }} />
         </div>
         <p className="dump-hint">{hint}</p>
       </div>
