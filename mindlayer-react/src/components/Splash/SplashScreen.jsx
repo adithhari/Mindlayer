@@ -16,7 +16,7 @@ export default function SplashScreen({ onComplete }) {
         <OrbScene state="idle" sliderValue={50} speakingHue={null} />
       </div>
       <div className="splash-text">
-        <h1 className="splash-title">MindLayer</h1>
+        <h1 className="splash-title">MindFlyer</h1>
         <p className="splash-sub">Your mental clarity companion</p>
       </div>
     </div>

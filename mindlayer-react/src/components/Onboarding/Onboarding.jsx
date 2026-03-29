@@ -25,7 +25,7 @@ export default function Onboarding() {
       {step === 0 && (
         <div className="onboarding-step">
           <div className="onboarding-orb" />
-          <h1 className="onboarding-title">MindLayer</h1>
+          <h1 className="onboarding-title">MindFlyer</h1>
           <p className="onboarding-sub">Your personal mental clarity companion</p>
           <button className="onboarding-btn" onClick={() => setStep(1)}>
             Get started
