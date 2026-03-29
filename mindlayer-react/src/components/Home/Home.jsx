@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../hooks/useAuth';
 import { analyzeEntry, deepgramSpeechToText, deepgramTextToSpeech } from '../../utils/api';
 import { checkCrisis } from '../../utils/constants';
 import { useAudioRecorder } from '../../hooks/useAudioRecorder';
@@ -28,10 +29,12 @@ function themeToHue(theme = '') {
 
 export default function Home() {
   const { logMood, addJournalEntry, userProfile, conversationHistory, setConversationHistory } = useApp();
+  const { logout } = useAuth();
 
   const [orbState, setOrbState] = useState('idle');
   const [speakingHue, setSpeakingHue] = useState(null);
   const [sliderValue, setSliderValue] = useState(50);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const moodLabel = getMoodLabel(sliderValue);
 
   const [inputText, setInputText] = useState('');
@@ -197,16 +200,37 @@ export default function Home() {
     setSpeakingHue(null);
   };
 
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch (err) {
+      console.error('Logout failed:', err);
+      setIsLoggingOut(false);
+    }
+  };
+
   const isTypingDone = aiData && displayedText === aiData.acknowledgment;
 
   return (
     <div className="home-screen">
       {/* Header */}
-      <div className="home-header">
-        <span className="home-greeting">
-          {greeting}{userProfile?.name ? `, ${userProfile.name}` : ''}
-        </span>
-        <span className="home-tagline">How are you feeling?</span>
+      <div className="home-header-top">
+        <div>
+          <span className="home-greeting">
+            {greeting}
+            {userProfile?.name && `, ${userProfile.name}`}
+          </span>
+          <span className="home-tagline">How are you feeling?</span>
+        </div>
+        <button 
+          className="logout-btn"
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          title="Sign out"
+        >
+          {isLoggingOut ? '...' : '↗'}
+        </button>
       </div>
 
       {/* Orb */}
