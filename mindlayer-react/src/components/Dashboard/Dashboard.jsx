@@ -5,10 +5,29 @@ import MoodPills from './MoodPills';
 import Streak from './Streak';
 
 export default function Dashboard() {
-  const { logMood, streakDays, userProfile } = useApp();
+  const { logMood, streakDays, userProfile, moodLog } = useApp();
   const { logout } = useAuth();
   const [greeting, setGreeting] = useState('');
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Get the current mood from the latest mood log entry
+  const currentMood = moodLog.length > 0 ? moodLog[moodLog.length - 1] : null;
+
+  const getMoodColor = (score) => {
+    if (score <= 2) return '#ef4444'; // red
+    if (score <= 4) return '#f97316'; // orange
+    if (score <= 6) return '#64748b'; // gray
+    if (score <= 8) return '#a78bfa'; // purple
+    return '#4ade80'; // green
+  };
+
+  const getMoodLabel = (score) => {
+    if (score <= 2) return 'Very Negative';
+    if (score <= 4) return 'Negative';
+    if (score <= 6) return 'Neutral';
+    if (score <= 8) return 'Positive';
+    return 'Very Positive';
+  };
 
   useEffect(() => {
     const h = new Date().getHours();
@@ -51,6 +70,45 @@ export default function Dashboard() {
           <h2>How are you feeling right now?</h2>
           <MoodPills onMoodSelect={logMood} />
         </div>
+
+        {/* Current mood indicator */}
+        {currentMood && (
+          <div className="current-mood-card" style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            background: `linear-gradient(135deg, ${getMoodColor(currentMood.score)}15, ${getMoodColor(currentMood.score)}08)`,
+            border: `1px solid ${getMoodColor(currentMood.score)}30`,
+            marginBottom: '24px',
+          }}>
+            <span style={{
+              width: '16px',
+              height: '16px',
+              borderRadius: '50%',
+              backgroundColor: getMoodColor(currentMood.score),
+              flexShrink: 0,
+            }} />
+            <div style={{ flex: 1 }}>
+              <span style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: getMoodColor(currentMood.score),
+                display: 'block',
+              }}>
+                Current mood: {getMoodLabel(currentMood.score)}
+              </span>
+              <span style={{
+                fontSize: '12px',
+                color: '#666',
+                display: 'block',
+              }}>
+                {new Date(currentMood.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className="feature-grid">
           <FeatureCard

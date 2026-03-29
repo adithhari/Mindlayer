@@ -23,9 +23,9 @@ export default function MoodSlider({ value, onChange }) {
   return (
     <div className="mood-pill-wrap">
       <div className="mood-pill-score">
-        <span className="mood-pill-score__num" style={{ color: activeSeg.color }}>
+        {/* <span className="mood-pill-score__num" style={{ color: activeSeg.color }}>
           {activeScore > 0 ? `+${activeScore}` : activeScore}
-        </span>
+        </span> */}
         <span className="mood-pill-score__label">{activeSeg.label.replace('\n', ' ')}</span>
       </div>
 
